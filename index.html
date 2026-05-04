@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ふらっとタウン ～ほのぼの人生ゲーム～</title>
+    <link rel="stylesheet" href="style.css?v=253">
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+</head>
+<body>
+    <div id="loadingOverlay" style="position:fixed;inset:0;background:#FAF4EF;z-index:99999;"></div>
+    <div class="game-container">
+        <main class="game-main">
+            <!-- みんなのつぶやき -->
+            <section class="tweet-section">
+                <img src="mintubu.png" alt="みんなのつぶやき" class="tweet-header-img">
+                <!-- 今日のつぶやきチャレンジ（ピン留め） -->
+                <div id="tweetPinnedChallenge"></div>
+                <div class="tweet-list" id="tweetList">
+                    <!-- JavaScriptで生成 -->
+                </div>
+            </section>
+
+            <!-- 街マップ -->
+            <section class="map-section">
+                <!-- タイトル枠 -->
+                <div class="title-section">
+                    <img src="tree&road/hyosiki.png" alt="標識" class="title-icon">
+                    <div class="title-text">
+                        <h1 class="game-title">メインストリート</h1>
+                        <p class="game-subtitle">- MAIN STREET -</p>
+                    </div>
+                </div>
+                <!-- マップビュー -->
+                <div id="mapView">
+                    <div class="map-container">
+                        <div class="map-wrapper">
+                            <div class="map-labels-top" id="mapLabelsTop">
+                                <!-- 1-16 のラベル（JavaScriptで生成） -->
+                            </div>
+                            <div class="map-body-row">
+                                <div class="map-labels-left" id="mapLabelsLeft">
+                                    <!-- A-L のラベル（JavaScriptで生成） -->
+                                </div>
+                                <table class="town-map" id="townMap">
+                                    <!-- JavaScriptで生成 -->
+                                </table>
+                            </div>
+                            <!-- ホバー時の施設説明 -->
+                            <div class="place-info-box" id="placeInfoBox">マスにカーソルを合わせると説明が表示されます</div>
+                            <!-- 参加者カウント -->
+                            <div class="map-participants">現在の参加者（<span id="participantCount">1</span>人）</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- つぶやきビュー（モーダルに移行済み・backToMap用に残す） -->
+                <div id="tweetView" style="display: none;"></div>
+
+                <!-- アクションビュー（施設クリック時に表示） -->
+                <div id="actionView" style="display: none;">
+                    <div class="action-view-header">
+                        <button class="btn-back" onclick="backToMap()">← マップに戻る</button>
+                        <h2 id="actionViewTitle">🏠 施設名</h2>
+                    </div>
+                    <div class="action-view-content">
+                        <p class="action-view-desc" id="actionViewDesc">施設の説明</p>
+                        <div class="action-buttons" id="actionButtons">
+                            <!-- JavaScriptで生成 -->
+                        </div>
+                    </div>
+                </div>
+
+
+            </section>
+
+
+            <!-- ステータス -->
+            <section class="status-section">
+                <div class="status-card">
+                    <!-- プレイヤー情報 -->
+                    <div class="player-info">
+                        <div class="player-avatar" id="playerAvatar">😊</div>
+                        <div class="player-details">
+                            <div class="player-name-container">
+                                <span class="player-name" id="playerName">のん</span>
+                            </div>
+                            <div class="player-job-container">
+                                <span class="player-job" id="playerJob">無職</span>
+                                <span class="player-job-level" id="playerJobLevel"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ランダムイベント通知 -->
+                    <div id="randomEventNotification" class="random-event-notification" style="display: none;">
+                        <span id="randomEventText"></span>
+                    </div>
+
+                    <!-- アクションアイコン -->
+                    <div class="status-group">
+                        <div class="status-group-title" style="margin-bottom: 5px;">行動</div>
+                        <div class="action-icons">
+                            <button class="action-icon" onclick="openWorkModal()" onmouseenter="showWorkInfo()" onmouseleave="hidePlaceInfo()"><img src="status/status1.png" alt="出勤" class="action-icon-img"></button>
+                            <button class="action-icon" onclick="openTweetModal()" onmouseenter="showStatusInfo('「みんなのつぶやき掲示板」につぶやきを投稿できます。')" onmouseleave="hidePlaceInfo()"><img src="status/status2.png" alt="つぶやき" class="action-icon-img"></button>
+                            <button class="action-icon" onclick="openInventoryModal()" onmouseenter="showStatusInfo('所持品リストです。入手したアイテムを使うことができます。')" onmouseleave="hidePlaceInfo()"><img src="status/status3.png" alt="所持品" class="action-icon-img"></button>
+                            <button class="action-icon" onclick="openDMModal()" style="position:relative;" onmouseenter="showStatusInfo('通知やメールを確認することができます。')" onmouseleave="hidePlaceInfo()"><img src="status/status4.png" alt="DM" class="action-icon-img"><span class="action-mail-badge" id="actionMailBadge" style="display:none;"></span></button>
+                            <button class="action-icon" onclick="openFriendModal()" onmouseenter="showStatusInfo(gameState.player.name + 'さんの交友関係を見ることができます。')" onmouseleave="hidePlaceInfo()"><img src="status/status5.png" alt="友人" class="action-icon-img"></button>
+                            <button class="action-icon" onclick="saveGame()" onmouseenter="showStatusInfo('データを保存してログアウトします。')" onmouseleave="hidePlaceInfo()"><img src="status/status6.png" alt="保存" class="action-icon-img"></button>
+                        </div>
+                    </div>
+
+                    <!-- 基本情報 -->
+                    <div class="status-group">
+                        <div class="status-group-title">財務ステータス</div>
+                        <div class="status-item">
+                            <span class="status-label">所持金</span>
+                            <span class="status-value"><span id="money">1000</span>円</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">総資産</span>
+                            <span class="status-value small"><span id="totalAssets">1000</span>円</span>
+                        </div>
+                    </div>
+
+                    <!-- 身体ステータス -->
+                    <div class="status-group">
+                        <div class="status-group-title">身体ステータス</div>
+                        <div class="status-item">
+                            <span class="status-label">身体パワー</span>
+                            <div class="status-bar-container">
+                                <div class="status-bar health-bar" id="healthBar"></div>
+                                <span class="status-bar-text"><span id="health">100</span>/<span id="maxHealth">100</span></span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">頭脳パワー</span>
+                            <div class="status-bar-container">
+                                <div class="status-bar intelligence-bar" id="intelligenceBar"></div>
+                                <span class="status-bar-text"><span id="intelligence">50</span>/<span id="maxIntelligence">100</span></span>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">空腹度</span>
+                            <span class="status-value"><span id="hungerText">普通</span></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">コンディション</span>
+                            <span class="status-value"><span id="condition">良好</span></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">身長</span>
+                            <span class="status-value"><span id="height">173</span>cm</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">体重</span>
+                            <span class="status-value"><span id="weight">54.2</span>kg</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">体格指数(BMI)</span>
+                            <span class="status-value"><span id="bodyFat">18.1</span> <span class="body-fat-label" id="bodyFatLabel">普通</span></span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- リセットボタン -->
+            <section class="reset-section">
+                <button class="reset-btn" onclick="resetGame()">💥</button>
+                <button class="slot-switch-btn" onclick="switchSaveSlot()"><span id="slotIndicator">本番</span></button>
+            </section>
+        </main>
+
+    </div>
+
+    <!-- 商店モーダル -->
+    <div class="modal" id="shopModal">
+        <div class="modal-content shop-modal-content">
+            <button class="board-close-btn" onclick="closeShop()">×</button>
+            <div class="shop-header">
+                <h3 class="shop-title" id="shopTitle">デパートの品揃えは毎日変わります。ぜひ見ていってくださいね！</h3>
+                <div class="shop-money" id="shopMoney">所持金：0円</div>
+            </div>
+
+            <!-- 商品一覧ビュー -->
+            <div id="shopListView">
+                <div class="shop-table-container">
+                    <table class="shop-table gym-table" id="shopTable">
+                        <thead>
+                            <tr class="gym-header-group">
+                                <th rowspan="2">商品名</th>
+                                <th colspan="14">アップする能力値
+                                    <span class="gym-hatena-wrapper">
+                                        <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                        <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                    </span>
+                                </th>
+                                <th rowspan="2">カロ<br>リー</th>
+                                <th rowspan="2">使用<br>回数</th>
+                                <th rowspan="2">使用<br>間隔</th>
+                                <th rowspan="2">身体<br>消費</th>
+                                <th rowspan="2">頭脳<br>消費</th>
+                                <th rowspan="2">備考</th>
+                                <th rowspan="2">価格</th>
+                                <th rowspan="2">在庫</th>
+                            </tr>
+                            <tr class="gym-header-sub">
+                                <th>国</th>
+                                <th>数</th>
+                                <th>理</th>
+                                <th>社</th>
+                                <th>英</th>
+                                <th>音</th>
+                                <th>美</th>
+                                <th>体</th>
+                                <th>気</th>
+                                <th>ル</th>
+                                <th>素</th>
+                                <th>面</th>
+                                <th>優</th>
+                                <th>エ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shopTableBody">
+                            <!-- JavaScriptで生成（能力値行 + 商品行） -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" id="shopPurchaseBtn" onclick="purchaseSelectedItems()" disabled>購入する</button>
+                </div>
+            </div>
+
+            <!-- 購入確認ビュー -->
+            <div id="shopConfirmView" style="display: none;">
+                <div class="purchase-confirm-content">
+                    <p class="confirm-heading">こちらの商品でよろしいでしょうか？</p>
+                    <p class="confirm-money" id="confirmCurrentMoney">現在の所持金：0円</p>
+                    <div class="confirm-items" id="confirmItemsList">
+                        <!-- JavaScriptで生成 -->
+                    </div>
+                    <div class="confirm-total">
+                        <span>合計金額：</span>
+                        <span class="total-price" id="confirmTotalPrice">0円</span>
+                    </div>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="confirmPurchase()">購入する</button>
+                    <button class="btn board-btn-back" onclick="backToShopList()">戻る</button>
+                </div>
+            </div>
+
+            <!-- 所持金不足ビュー -->
+            <div id="shopNoMoneyView" style="display: none;">
+                <div class="no-money-content">
+                    <p class="no-money-error">ERROR！</p>
+                    <p class="no-money-message">お客様、所持金が足りないようです...。</p>
+                    <div class="no-money-details">
+                        <div class="no-money-row">
+                            <span class="no-money-label">現在の所持金</span>
+                            <span class="no-money-colon">：</span>
+                            <span class="no-money-value" id="noMoneyCurrentMoney">0円</span>
+                        </div>
+                        <div class="no-money-row">
+                            <span class="no-money-label">合計金額　　</span>
+                            <span class="no-money-colon">：</span>
+                            <span class="no-money-value" id="noMoneyTotalPrice">0円</span>
+                        </div>
+                    </div>
+                    <div class="no-money-shortage-wrap">
+                    <div class="no-money-shortage">
+                        <span class="no-money-label">不足金額　　</span>
+                        <span class="no-money-colon">：</span>
+                        <span class="no-money-shortage-value" id="noMoneyShortage">0円</span>
+                    </div>
+                    </div>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-back" onclick="backToShopList()">戻る</button>
+                </div>
+            </div>
+
+            <!-- 購入完了ビュー -->
+            <div id="shopCompleteView" style="display: none;">
+                <div class="purchase-complete-content">
+                    <p class="complete-heading">お買い上げありがとうございます！</p>
+                    <p class="complete-subheading">またお越しくださいませ。</p>
+                    <p class="complete-label">【ご購入品】</p>
+                    <div class="complete-items" id="completeItemsList">
+                        <!-- JavaScriptで生成 -->
+                    </div>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeShopAndOpenInventory()">所持品を見る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 問屋モーダル -->
+    <div class="modal" id="tonyaModal">
+        <div class="modal-content shop2-modal-content">
+
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn shop2-titlebar-back-btn" id="tonyaBackBtn" onclick="closeTonyaModal()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title">いらっしゃいませ。問屋へようこそ！</span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeTonyaModal()">✕</button>
+            </div>
+
+            <!-- コンテンツエリア -->
+            <div class="shop2-content-area">
+
+            <!-- 商品一覧ビュー -->
+            <div id="tonyaListView" class="shop2-listview">
+                <p class="tonya-welcome-description">マイホームのお店に並べる商品を仕入れられる場所です。（仕入れはお店を持っている方限定です）<br>品揃えは毎日変わり、まとめて仕入れるとお得な割引が効きます。<br>問屋でしか手に入らないアイテムも多数ご用意しています。ゆっくり見ていってね！</p>
+                <div class="shop2-listview-header">
+                    <div class="shop2-header-left">
+                    <div class="shop2-filter-group">
+                        <span class="shop2-filter-label">絞り込み：</span>
+                        <select class="shop2-filter-select" id="tonyaPriceSelect" onchange="tonyaSetPriceFilter(this.value)">
+                            <option value="all">価格</option>
+                            <option value="10000">〜1万円</option>
+                            <option value="100000">〜10万円</option>
+                            <option value="1000000">〜100万円</option>
+                            <option value="10000000">〜1,000万円</option>
+                            <option value="over">1,000万円以上</option>
+                        </select>
+                        <select class="shop2-filter-select" id="tonyaGenreSelect" onchange="tonyaSetGenreFilter(this.value)">
+                            <option value="all">ジャンル</option>
+                        </select>
+                        <select class="shop2-filter-select" id="tonyaAbilitySelect" onchange="tonyaSetAbilityFilter(this.value)">
+                            <option value="none">能力値</option>
+                            <option value="国語">国語</option>
+                            <option value="数学">数学</option>
+                            <option value="理科">理科</option>
+                            <option value="社会">社会</option>
+                            <option value="英語">英語</option>
+                            <option value="音楽">音楽</option>
+                            <option value="美術">美術</option>
+                            <option value="体力">体力</option>
+                            <option value="気力">気力</option>
+                            <option value="ルックス">ルックス</option>
+                            <option value="素早さ">素早さ</option>
+                            <option value="面白さ">面白さ</option>
+                            <option value="優しさ">優しさ</option>
+                            <option value="エロさ">エロさ</option>
+                            <option value="身体パワー">身体パワー</option>
+                            <option value="頭脳パワー">頭脳パワー</option>
+                        </select>
+                        <button class="shop2-filter-reset-btn" onclick="tonyaResetFilters()">リセット</button>
+                    </div>
+                    </div>
+                    <button class="shop2-cart-open-btn" onclick="openTonyaCartModal()">
+                        <img src="public/icon/cart.png" alt="カート">
+                        カートを見る
+                        <span class="shop2-cart-badge" id="tonyaCartBadge" style="display:none;"></span>
+                    </button>
+                </div>
+                <div class="shop2-table-container">
+                            <table class="shop2-table" id="tonyaTable">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="14">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th colspan="2">消費パワー</th>
+                                        <th rowspan="2">使用<br>回数</th>
+                                        <th rowspan="2">使用<br>間隔</th>
+                                        <th rowspan="2">価格</th>
+                                        <th rowspan="2">在庫</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>国</th>
+                                        <th>数</th>
+                                        <th>理</th>
+                                        <th>社</th>
+                                        <th>英</th>
+                                        <th>音</th>
+                                        <th>美</th>
+                                        <th>体</th>
+                                        <th>気</th>
+                                        <th>ル</th>
+                                        <th>素</th>
+                                        <th>面</th>
+                                        <th>優</th>
+                                        <th>エ</th>
+                                        <th>身体</th>
+                                        <th>頭脳</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tonyaTableBody">
+                                    <!-- JSで生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+            </div>
+
+            <!-- カートオーバーレイ -->
+            <div class="shop2-cart-overlay" id="tonyaCartModal" style="display:none;">
+                <div class="shop2-cart-tab" onclick="closeTonyaCartModal()">閉じる</div>
+                <div class="shop2-cart-overlay-body">
+                    <div class="shop2-right-money">
+                        現在の預金残高<br>
+                        <span id="tonyaMoneyValue">0円</span>
+                    </div>
+                    <div class="shop2-cart">
+                        <div class="shop2-cart-title">カートの中身</div>
+                        <div class="shop2-cart-items" id="tonyaCartItems">
+                            <p class="shop2-cart-empty">アイテムを選んでください</p>
+                        </div>
+                        <div class="tonya-lot-discount-info">
+                            <span>10個以上：<b>30%OFF</b> / 20個以上：<b>50%OFF！</b></span>
+                        </div>
+                        <div class="shop2-cart-total">
+                            <span>合計</span>
+                            <span class="shop2-total-price" id="tonyaTotalPrice">0円</span>
+                        </div>
+                        <div class="shop2-insufficient" id="tonyaInsufficient" style="display:none;">預金残高が足りません</div>
+                    </div>
+                    <button class="btn shop2-purchase-btn" id="tonyaPurchaseBtn" onclick="purchaseTonya()" disabled>仕入れる</button>
+                </div>
+            </div>
+
+            <!-- 購入完了ビュー -->
+            <div id="tonyaCompleteView" style="display:none;" class="shop2-complete-view">
+                <div class="shop2-complete-content">
+                    <p class="shop2-complete-heading">仕入れ完了！</p>
+                    <p class="shop2-complete-subheading">またのご利用をお待ちしています。</p>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeTonyaModal()">閉じる</button>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲームセンターモーダル -->
+    <div class="modal" id="arcadeModal">
+        <div class="modal-content arcade-modal-content arcade-lobby-mode">
+
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn arcade-titlebar-back-btn" id="arcadeBackBtn" onclick="backToArcadeLobby()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeArcadeModal()">✕</button>
+            </div>
+
+            <!-- コンテンツエリア -->
+            <div class="arcade-content-area">
+
+                <!-- ロビービュー -->
+                <div id="arcadeLobbyView" class="facility-lobby">
+                    <!-- 左端ストライプ -->
+                    <div class="facility-lobby-stripe"></div>
+                    <!-- 左パネル -->
+                    <div class="facility-lobby-left">
+                        <div class="facility-lobby-name">ゲームセンター</div>
+                        <div class="facility-lobby-divider"></div>
+                        <p class="facility-lobby-greeting">いらっしゃいませ。<br>遊んでいってくださいね！</p>
+                        <div class="facility-lobby-btns">
+                            <button class="facility-lobby-btn" onclick="openCardGameModal()"
+                                onmouseenter="showFacilityDesc('arcade', 'card')" onmouseleave="hideFacilityDesc('arcade')">
+                                <span class="facility-lobby-btn-label">運試しカード</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 右パネル -->
+                    <div class="facility-lobby-right">
+                        <img src="haikei/gamecenter.png" alt="ゲームセンター" class="facility-lobby-img">
+                        <div class="facility-lobby-desc" id="arcadeLobbyDesc"></div>
+                    </div>
+                </div>
+
+                <!-- カードゲームビュー -->
+                <div id="arcadeCardView" style="display:none;">
+                    <div class="arcade-card-layout">
+
+                        <!-- 左カラム -->
+                        <div class="arcade-card-left">
+                            <div class="arcade-card-draw-area">
+                                <div class="arcade-card-prev-label arcade-card-current-label">今回のカード</div>
+                                <div class="cardgame-card-back" id="cardgameCurrentCard">?</div>
+                                <button class="arcade-card-draw-btn" id="cardgameDrawBtn" onclick="drawCard()">カードを引く</button>
+                                <div id="cardgameStake" class="arcade-card-stake"></div>
+                                <div class="cardgame-card-front" id="cardgamePrevCard"></div>
+                                <div class="arcade-card-prev-label">前回のカード</div>
+                            </div>
+                        </div>
+
+                        <!-- 右カラム -->
+                        <div class="arcade-card-right">
+                            <div class="arcade-card-section">
+                                <div class="arcade-card-section-label">結果</div>
+                                <div id="cardgameResult" class="arcade-card-result">カードを引いてみよう！</div>
+                            </div>
+                            <div class="arcade-card-section arcade-card-section-table">
+                                <div class="arcade-card-section-label">現在までに引かれたカード</div>
+                                <div id="cardgameTable" class="arcade-card-table"></div>
+                            </div>
+                            <div class="arcade-card-section arcade-card-section-history">
+                                <div class="arcade-card-section-label">最近のゲーム</div>
+                                <div id="cardgameHistory" class="arcade-card-history"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div><!-- /.arcade-content-area -->
+        </div>
+    </div>
+
+    <!-- 新デパートモーダル -->
+    <div class="modal" id="shop2Modal">
+        <div class="modal-content shop2-modal-content">
+
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn shop2-titlebar-back-btn" id="shop2BackBtn" onclick="openShop2()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeShop2()">✕</button>
+            </div>
+
+            <!-- コンテンツエリア -->
+            <div class="shop2-content-area">
+
+            <!-- ロビービュー -->
+            <div id="shop2LobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">ショッピングモール</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">いらっしゃいませ。<br>ゆっくり見ていってくださいね！</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" onclick="openShop2Buy()"
+                            onmouseenter="showFacilityDesc('shop2', 'buy')" onmouseleave="hideFacilityDesc('shop2')">
+                            <img src="public/icon/buy.png" alt="買う" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">買う</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="openShop2Sell()"
+                            onmouseenter="showFacilityDesc('shop2', 'sell')" onmouseleave="hideFacilityDesc('shop2')">
+                            <img src="public/icon/sale.png" alt="売る" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">売る</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img src="haikei/Shopping.jpg" alt="デパート" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="shop2LobbyDesc"></div>
+                </div>
+            </div>
+
+            <!-- 商品一覧ビュー -->
+            <div id="shop2ListView" class="shop2-listview" style="display:none;">
+                <div class="shop2-listview-header">
+                    <div class="shop2-header-left">
+                    <button class="shop2-recommend-btn" id="shop2RecommendBtn" onclick="shop2ToggleRecommend()">おすすめ順：OFF</button>
+                    <div class="shop2-filter-group">
+                        <span class="shop2-filter-label">絞り込み：</span>
+                        <select class="shop2-filter-select" id="shop2PriceSelect" onchange="shop2SetPriceFilter(this.value)">
+                            <option value="all">価格</option>
+                            <option value="10000">〜1万円</option>
+                            <option value="100000">〜10万円</option>
+                            <option value="1000000">〜100万円</option>
+                            <option value="10000000">〜1,000万円</option>
+                            <option value="over">1,000万円以上</option>
+                        </select>
+                        <select class="shop2-filter-select" id="shop2GenreSelect" onchange="shop2SetGenreFilter(this.value)">
+                            <option value="all">ジャンル</option>
+                        </select>
+                        <select class="shop2-filter-select" id="shop2AbilitySelect" onchange="shop2SetAbilityFilter(this.value)">
+                            <option value="none">能力値</option>
+                            <option value="国語">国語</option>
+                            <option value="数学">数学</option>
+                            <option value="理科">理科</option>
+                            <option value="社会">社会</option>
+                            <option value="英語">英語</option>
+                            <option value="音楽">音楽</option>
+                            <option value="美術">美術</option>
+                            <option value="体力">体力</option>
+                            <option value="気力">気力</option>
+                            <option value="ルックス">ルックス</option>
+                            <option value="素早さ">素早さ</option>
+                            <option value="面白さ">面白さ</option>
+                            <option value="優しさ">優しさ</option>
+                            <option value="エロさ">エロさ</option>
+                            <option value="身体パワー">身体パワー</option>
+                            <option value="頭脳パワー">頭脳パワー</option>
+                        </select>
+                        <button class="shop2-filter-reset-btn" onclick="shop2ResetFilters()">リセット</button>
+                    </div>
+                    </div>
+                    <button class="shop2-cart-open-btn" onclick="openShop2CartModal()">
+                        <img src="public/icon/cart.png" alt="カート">
+                        カートを見る
+                        <span class="shop2-cart-badge" id="shop2CartBadge" style="display:none;"></span>
+                    </button>
+                </div>
+                <div class="shop2-table-container">
+                            <table class="shop2-table" id="shop2Table">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="14">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th colspan="2">消費パワー</th>
+                                        <th rowspan="2">使用<br>回数</th>
+                                        <th rowspan="2">使用<br>間隔</th>
+                                        <th rowspan="2">価格</th>
+                                        <th rowspan="2">在庫</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>国</th>
+                                        <th>数</th>
+                                        <th>理</th>
+                                        <th>社</th>
+                                        <th>英</th>
+                                        <th>音</th>
+                                        <th>美</th>
+                                        <th>体</th>
+                                        <th>気</th>
+                                        <th>ル</th>
+                                        <th>素</th>
+                                        <th>面</th>
+                                        <th>優</th>
+                                        <th>エ</th>
+                                        <th>身体</th>
+                                        <th>頭脳</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop2TableBody">
+                                    <!-- JSで生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+            </div>
+
+            <!-- カートオーバーレイ -->
+            <div class="shop2-cart-overlay" id="shop2CartModal" style="display:none;">
+                <div class="shop2-cart-tab" onclick="closeShop2CartModal()">閉じる</div>
+                <div class="shop2-cart-overlay-body">
+                    <div class="shop2-right-money">
+                        現在の所持金<br>
+                        <span id="shop2MoneyValue">0円</span>
+                    </div>
+                    <div class="shop2-cart">
+                        <div class="shop2-cart-title">カートの中身</div>
+                        <div class="shop2-cart-items" id="shop2CartItems">
+                            <p class="shop2-cart-empty">アイテムを選んでください</p>
+                        </div>
+                        <div class="shop2-cart-total">
+                            <span>合計</span>
+                            <span class="shop2-total-price" id="shop2TotalPrice">0円</span>
+                        </div>
+                        <div class="shop2-insufficient" id="shop2Insufficient" style="display:none;">残高が足りません</div>
+                    </div>
+                    <button class="btn shop2-purchase-btn" id="shop2PurchaseBtn" onclick="purchaseShop2()" disabled>購入する</button>
+                </div>
+            </div>
+
+            <!-- 購入完了ビュー -->
+            <div id="shop2CompleteView" style="display:none;" class="shop2-complete-view">
+                <div class="shop2-complete-content">
+                    <p class="shop2-complete-heading">お買い上げありがとうございます！</p>
+                    <p class="shop2-complete-subheading">またお越しくださいませ。</p>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeShop2AndOpenInventory()">所持品を見る</button>
+                    <button class="btn board-btn-back" onclick="shop2BackToList()">続けてお買い物</button>
+                </div>
+            </div>
+
+            </div><!-- /.shop2-content-area -->
+        </div>
+    </div>
+
+    <!-- 病院モーダル -->
+    <div class="modal" id="hospitalModal">
+        <div class="modal-content hospital-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeHospitalModal()">✕</button>
+            </div>
+            <div class="hospital-modal-body">
+                <!-- 診察画面 -->
+                <div id="hospitalMainView">
+                    <p class="hospital-modal-desc" id="hospitalModalDesc"></p>
+                    <div class="hospital-modal-buttons" id="hospitalModalButtons"></div>
+                </div>
+                <!-- 完了画面 -->
+                <div id="hospitalCompleteView" style="display: none;">
+                    <p class="hospital-complete-msg" id="hospitalCompleteMsg"></p>
+                    <div class="hospital-modal-buttons">
+                        <button class="btn btn-primary hospital-ok-btn" onclick="closeHospitalModal()">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 役場モーダル -->
+    <div class="modal" id="yakubaModal">
+        <div class="modal-content yakuba-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeYakubaModal()">✕</button>
+            </div>
+            <div id="yakubaLobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">役場</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">ようこそ ふらっとタウン役場へ！<br>ご用件をどうぞ。</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" onclick="openProfileRegistration()"
+                            onmouseenter="showFacilityDesc('yakuba', 'profile')" onmouseleave="hideFacilityDesc('yakuba')">
+                            <img src="public/icon/profile.png" alt="プロフィール編集" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">プロフィール編集</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                            onmouseenter="showFacilityDesc('yakuba', 'news')" onmouseleave="hideFacilityDesc('yakuba')">
+                            <img src="public/icon/news.png" alt="最近のニュース" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">最近のニュース</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                            onmouseenter="showFacilityDesc('yakuba', 'feedback')" onmouseleave="hideFacilityDesc('yakuba')">
+                            <img src="public/icon/feedback.png" alt="ご意見・ご感想" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">ご意見・ご感想</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="applyEmergencySupport()"
+                            onmouseenter="showFacilityDesc('yakuba', 'emergency')" onmouseleave="hideFacilityDesc('yakuba')">
+                            <img src="public/icon/emergency.png" alt="緊急支援" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">緊急支援</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img src="haikei/yakuba.jpg" alt="役場" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="yakubaLobbyDesc"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緊急支援金モーダル -->
+    <div class="modal" id="emergencySupportModal">
+        <div class="modal-content emergency-modal-content">
+            <!-- メイン画面 -->
+            <div id="emergencySupportMainView">
+                <button class="board-close-btn" onclick="closeEmergencyModal()">×</button>
+                <p class="emergency-modal-greeting">こんにちは、<span id="emergencySupportName"></span>さん。<br>どうやら人生に詰んでしまったようですね…。<br>いまの<span class="emergency-name-inline"></span>さんにはこちらの支援が受けられますよ。いかがでしょうか？</p>
+                <div class="emergency-support-box" id="emergencySupportContent"></div>
+                <button class="emergency-receive-btn" id="emergencySupportReceiveBtn" onclick="receiveEmergencySupport()">支援を受ける</button>
+            </div>
+            <!-- 完了画面 -->
+            <div id="emergencySupportCompleteView" style="display:none;">
+                <p class="emergency-complete-msg">支援金を受け取りました！<br>人生に詰んだらまたお越しくださいませ。</p>
+                <button class="emergency-receive-btn" onclick="closeEmergencyModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 木のコインモーダル -->
+    <div class="modal" id="treeCoinModal">
+        <div class="modal-content tree-coin-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeTreeCoinModal()">✕</button>
+                </div>
+            </div>
+            <div class="tree-coin-modal-body">
+                <p class="tree-coin-message" id="treeCoinMessage"></p>
+                <button class="tree-coin-btn" onclick="collectCoin()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 銀行モーダル -->
+    <div class="modal" id="bankModal">
+        <div class="modal-content bank-modal-content">
+
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn bank-titlebar-back-btn" id="bankBackBtn" onclick="bankGoBack()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeBankModal()">✕</button>
+            </div>
+
+            <!-- ロビー画面 -->
+            <div id="bankLobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">銀行</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">いらっしゃいませ。<br>ご希望のお取引をどうぞ。</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" onclick="deposit()"
+                            onmouseenter="showFacilityDesc('bank', 'azukeru')" onmouseleave="hideFacilityDesc('bank')">
+                            <img src="public/icon/azukeru.png" alt="お預入れ" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">お預入れ</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="withdraw()"
+                            onmouseenter="showFacilityDesc('bank', 'hikidashi')" onmouseleave="hideFacilityDesc('bank')">
+                            <img src="public/icon/hikidashi.png" alt="お引き出し" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">お引き出し</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                            onmouseenter="showFacilityDesc('bank', 'hurikomi')" onmouseleave="hideFacilityDesc('bank')">
+                            <img src="public/icon/hurikomi.png" alt="お振込み" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">お振込み</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showBankHistory()"
+                            onmouseenter="showFacilityDesc('bank', 'meisai')" onmouseleave="hideFacilityDesc('bank')">
+                            <img src="public/icon/meisai.png" alt="入出金明細" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">入出金明細</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img id="bankLobbyImg" src="haikei/atm1.jpg" alt="銀行" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="bankLobbyDesc"></div>
+                </div>
+            </div>
+
+            <!-- お預入れ画面 -->
+            <div id="bankDepositView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-main-text">お預入れの金額をご指定ください。</p>
+                    <p class="bank-note-text">※普通口座にお金を入れておくと、1日1回0.5％の利息がつきます。<br>家のお賽銭や、お店の商品が売れたときの入金先としても利用されます。</p>
+                    <div class="bank-deposit-wrapper">
+                    <div class="bank-info bank-info-inline">
+                        <p>所持金：<span id="depositCurrentMoney">0</span>円</p>
+                        <span class="bank-info-sep">／</span>
+                        <p>預金残高：<span id="depositCurrentSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-deposit-layout">
+                        <div class="bank-numpad">
+                            <div class="bank-numpad-display">
+                                <span class="bank-numpad-amount" id="depositNumpadDisplay">0</span>
+                                <span class="bank-numpad-unit">円</span>
+                            </div>
+                            <div class="bank-numpad-grid">
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('1')">1</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('2')">2</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('3')">3</button>
+                                <button class="bank-numpad-btn bank-numpad-del" onclick="depositNumpadCorrect()">訂正</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('4')">4</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('5')">5</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('6')">6</button>
+                                <button class="bank-numpad-btn bank-numpad-special" onclick="depositNumpadMan()">万</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('7')">7</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('8')">8</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('9')">9</button>
+                                <button class="bank-numpad-btn bank-numpad-special" onclick="depositNumpadSen()">千</button>
+                                <button class="bank-numpad-btn bank-numpad-zero" onclick="depositNumpadInput('0')">0</button>
+                                <button class="bank-numpad-btn" onclick="depositNumpadInput('00')">00</button>
+                                <button class="bank-numpad-btn bank-numpad-all" onclick="depositNumpadAll()">全額</button>
+                            </div>
+                        </div>
+                        <div class="bank-keep-panel">
+                            <div class="bank-keep-panel-title">残して預ける</div>
+                            <button class="bank-keep-btn" data-keep="10000" onclick="selectKeepAmount(this, 10000)">1万円残して</button>
+                            <button class="bank-keep-btn" data-keep="100000" onclick="selectKeepAmount(this, 100000)">10万円残して</button>
+                            <button class="bank-keep-btn" data-keep="500000" onclick="selectKeepAmount(this, 500000)">50万円残して</button>
+                            <button class="bank-keep-btn" data-keep="1000000" onclick="selectKeepAmount(this, 1000000)">100万円残して</button>
+                            <button class="bank-keep-btn" data-keep="10000000" onclick="selectKeepAmount(this, 10000000)">1000万円残して</button>
+                        </div>
+                    </div>
+                    <button class="bank-deposit-confirm-btn" onclick="depositConfirmUnified()">預ける</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お預入れ完了画面 -->
+            <div id="bankDepositCompleteView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-complete-message"><span id="depositCompleteAmount">0</span>円預けました。</p>
+                    <div class="bank-info no-top-padding">
+                        <p>所持金　：<span id="depositCompleteMoney">0</span>円</p>
+                        <p>預金残高：<span id="depositCompleteSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-buttons">
+                        <button class="btn btn-success" onclick="closeBankModal()">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お引き出し画面 -->
+            <div id="bankWithdrawView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-main-text">お引き出しの金額をご指定ください。</p>
+                    <div class="bank-deposit-wrapper">
+                    <div class="bank-info bank-info-inline">
+                        <p>所持金：<span id="withdrawCurrentMoney">0</span>円</p>
+                        <span class="bank-info-sep">／</span>
+                        <p>預金残高：<span id="withdrawCurrentSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-deposit-layout">
+                        <div class="bank-numpad">
+                            <div class="bank-numpad-display">
+                                <span class="bank-numpad-amount" id="withdrawNumpadDisplay">0</span>
+                                <span class="bank-numpad-unit">円</span>
+                            </div>
+                            <div class="bank-numpad-grid">
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('1')">1</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('2')">2</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('3')">3</button>
+                                <button class="bank-numpad-btn bank-numpad-del" onclick="withdrawNumpadCorrect()">訂正</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('4')">4</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('5')">5</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('6')">6</button>
+                                <button class="bank-numpad-btn bank-numpad-special" onclick="withdrawNumpadMan()">万</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('7')">7</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('8')">8</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('9')">9</button>
+                                <button class="bank-numpad-btn bank-numpad-special" onclick="withdrawNumpadSen()">千</button>
+                                <button class="bank-numpad-btn bank-numpad-zero" onclick="withdrawNumpadInput('0')">0</button>
+                                <button class="bank-numpad-btn" onclick="withdrawNumpadInput('00')">00</button>
+                                <button class="bank-numpad-btn bank-numpad-all" onclick="withdrawNumpadAll()">全額</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="bank-deposit-confirm-btn" id="withdrawConfirmBtn" onclick="withdrawConfirmUnified()">引き出す</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お引き出し完了画面 -->
+            <div id="bankWithdrawCompleteView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-complete-message"><span id="withdrawCompleteAmount">0</span>円引き出しました。</p>
+                    <div class="bank-info no-top-padding">
+                        <p>所持金　：<span id="withdrawCompleteMoney">0</span>円</p>
+                        <p>預金残高：<span id="withdrawCompleteSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-buttons">
+                        <button class="btn btn-success" onclick="closeBankModal()">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お振り込み画面 -->
+            <div id="bankTransferView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-main-text">お振込み先をご指定ください。</p>
+                    <p class="bank-note-text">タウンの参加者名を入力して送金することができます。<br>お金は普通口座より引き落とされます。</p>
+                    <div class="bank-line"></div>
+                    <div class="bank-info">
+                        <p>預金残高：<span id="transferCurrentSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-line"></div>
+                    <div class="bank-input-area">
+                        <label for="transferName" class="bank-transfer-label">振込先のお名前</label>
+                        <div class="bank-input-row">
+                            <input type="text" id="transferName" style="text-align: left;">
+                        </div>
+                    </div>
+                    <div class="bank-input-area">
+                        <label for="transferAmount" class="bank-transfer-label">振り込み金額</label>
+                        <div class="bank-input-row">
+                            <input type="number" id="transferAmount" min="0" step="100" placeholder="0">
+                            <span class="bank-input-unit">円</span>
+                        </div>
+                    </div>
+                    <p class="bank-error-message" id="transferErrorMessage" style="display: none;"></p>
+                    <div class="bank-buttons">
+                        <button class="btn btn-success" onclick="showTransferConfirm()">確認画面へ</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お振り込み確認画面 -->
+            <div id="bankTransferConfirmView" style="display: none;">
+                <div class="bank-content">
+                    <p class="bank-main-text">こちらの内容でよろしいでしょうか？</p>
+                    <div class="bank-line"></div>
+                    <div class="transfer-confirm-info">
+                        <div class="transfer-target">
+                            <div class="transfer-target-avatar" id="transferTargetAvatar">😊</div>
+                            <div class="transfer-target-details">
+                                <p class="transfer-target-name" id="transferTargetName">名前</p>
+                                <p class="transfer-target-job" id="transferTargetJob">職業</p>
+                            </div>
+                        </div>
+                        <div class="transfer-amount-display">
+                            <p>振込金額：<span id="transferConfirmAmount">0</span>円</p>
+                        </div>
+                    </div>
+                    <div class="bank-line"></div>
+                    <div class="bank-info">
+                        <p>預金残高：<span id="transferConfirmSavings">0</span>円</p>
+                    </div>
+                    <div class="bank-buttons">
+                        <button class="btn btn-success" onclick="confirmTransfer()">お振り込み</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 入出金明細画面 -->
+            <div id="bankHistoryView" style="display: none;">
+                <div class="bank-content bank-history-content">
+                    <p class="bank-main-text">入出金明細</p>
+                    <p class="bank-note-text">最新100件までのお取引履歴を表示しています。</p>
+                    <div class="bank-history-table-container">
+                        <table class="bank-history-table" id="bankHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>日付</th>
+                                    <th>お取引内容</th>
+                                    <th>出金額</th>
+                                    <th>入金額</th>
+                                    <th>差引残高</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bankHistoryTableBody">
+                                <!-- JavaScriptで生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="bank-history-empty" id="bankHistoryEmpty" style="display: none;">お取引履歴がありません</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ジムモーダル -->
+    <div class="modal" id="gymModal">
+        <div class="modal-content gym-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeGymModal()">✕</button>
+            </div>
+            <div class="gym-modal-body">
+            <!-- テーブルビュー -->
+            <div id="gymTableView">
+                <p class="gym-modal-desc">今日も張り切って体を鍛えましょう！（トレーニングできる間隔は30分です）</p>
+                <div class="gym-layout">
+                    <!-- 左パネル：テーブル -->
+                    <div class="gym-layout-left">
+                        <div class="gym-table-container">
+                            <table class="gym-table">
+                                <thead>
+                                    <tr class="gym-header-group">
+                                        <th rowspan="2">メニュー</th>
+                                        <th colspan="7">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th rowspan="2">消費<br>カロリー</th>
+                                        <th rowspan="2">金額</th>
+                                        <th rowspan="2">身体<br>消費</th>
+                                    </tr>
+                                    <tr class="gym-header-sub">
+                                        <th>体</th>
+                                        <th>気</th>
+                                        <th>ル</th>
+                                        <th>素</th>
+                                        <th>面</th>
+                                        <th>優</th>
+                                        <th>エ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gymTableBody">
+                                    <!-- JavaScriptで動的に生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- 右パネル：メニュー情報 -->
+                    <div class="gym-layout-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="gymMoney">0円</span>
+                        </div>
+                        <div class="gym-panel" id="gymPanel">
+                            <p class="shokudo-no-select">メニューを選んでください</p>
+                        </div>
+                        <div class="shop2-insufficient" id="gymBodyWarn" style="display:none;">身体パワーが足りません</div>
+                        <button id="gymTrainBtn" class="shop2-purchase-btn" onclick="doGymTraining()" disabled>トレーニングする</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 結果ビュー -->
+            <div id="gymResultView" style="display: none;" class="shop2-complete-view gym-complete-view">
+                <div class="shop2-complete-content">
+                    <p id="gymResultMessage" class="shop2-complete-heading"></p>
+                    <div id="gymResultStats" class="gym-result-stats"></div>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeGymModal()">OK</button>
+                </div>
+            </div>
+            </div><!-- /.gym-modal-body -->
+        </div>
+    </div>
+
+    <!-- 習い事スクールモーダル -->
+    <div class="modal" id="schoolModal">
+        <div class="modal-content gym-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeSchoolModal()">✕</button>
+            </div>
+            <div class="gym-modal-body">
+            <!-- テーブルビュー -->
+            <div id="schoolTableView">
+                <p class="gym-modal-desc">さあ、今日も頭を鍛えましょう！（レッスンできる間隔は30分です）</p>
+                <div class="gym-layout">
+                    <!-- 左パネル：テーブル -->
+                    <div class="gym-layout-left">
+                        <div class="gym-table-container">
+                            <table class="gym-table">
+                                <thead>
+                                    <tr class="gym-header-group">
+                                        <th rowspan="2">メニュー</th>
+                                        <th colspan="7">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術</span>
+                                            </span>
+                                        </th>
+                                        <th rowspan="2">金額</th>
+                                        <th rowspan="2">頭脳<br>消費</th>
+                                    </tr>
+                                    <tr class="gym-header-sub">
+                                        <th>国</th>
+                                        <th>数</th>
+                                        <th>理</th>
+                                        <th>社</th>
+                                        <th>英</th>
+                                        <th>音</th>
+                                        <th>美</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schoolTableBody">
+                                    <!-- JavaScriptで動的に生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- 右パネル：メニュー情報 -->
+                    <div class="gym-layout-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="schoolMoney">0円</span>
+                        </div>
+                        <div class="gym-panel" id="schoolPanel">
+                            <p class="shokudo-no-select">メニューを選んでください</p>
+                        </div>
+                        <div class="shop2-insufficient" id="schoolBrainWarn" style="display:none;">頭脳パワーが足りません</div>
+                        <button id="schoolLessonBtn" class="shop2-purchase-btn" onclick="doSchoolLesson()" disabled>レッスンを受ける</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 結果ビュー -->
+            <div id="schoolResultView" style="display: none;" class="shop2-complete-view gym-complete-view">
+                <div class="shop2-complete-content">
+                    <p id="schoolResultMessage" class="shop2-complete-heading"></p>
+                    <div id="schoolResultStats" class="gym-result-stats"></div>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeSchoolModal()">OK</button>
+                </div>
+            </div>
+            </div><!-- /.gym-modal-body -->
+        </div>
+    </div>
+
+    <!-- 食堂モーダル -->
+    <div class="modal" id="shokudoModal">
+        <div class="modal-content shop2-modal-content">
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn arcade-titlebar-back-btn" id="shokudoBackBtn" onclick="openShokudo()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeShokudo()">✕</button>
+            </div>
+            <div class="shop2-content-area">
+
+            <!-- ロビービュー -->
+            <div id="shokudoLobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">食堂</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">いらっしゃいませ。<br>今日のメニュー、何にしますか？</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" onclick="openShokudoEat()"
+                            onmouseenter="showFacilityDesc('shokudo', 'eat')" onmouseleave="hideFacilityDesc('shokudo')">
+                            <img src="public/icon/eat.png" alt="ここで食べる" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">ここで食べる</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="openShokudoTakeout()"
+                            onmouseenter="showFacilityDesc('shokudo', 'takeout')" onmouseleave="hideFacilityDesc('shokudo')">
+                            <img src="public/icon/takeout.png" alt="持ち帰る" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">テイクアウト</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img id="shokudoLobbyImg" src="haikei/food.jpg" alt="食堂" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="shokudoLobbyDesc"></div>
+                </div>
+            </div>
+
+            <!-- ここで食べるビュー -->
+            <div id="shokudoEatView" style="display:none;">
+                <div class="shokudo-eat-layout">
+                    <div class="shokudo-eat-left">
+                        <div class="shop2-table-container">
+                            <table class="shop2-table" id="shokudoEatTable">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="14">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th rowspan="2">カロリー</th>
+                                        <th rowspan="2">備考</th>
+                                        <th rowspan="2">価格</th>
+                                        <th rowspan="2">在庫</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>国</th>
+                                        <th>数</th>
+                                        <th>理</th>
+                                        <th>社</th>
+                                        <th>英</th>
+                                        <th>音</th>
+                                        <th>美</th>
+                                        <th>体</th>
+                                        <th>気</th>
+                                        <th>ル</th>
+                                        <th>素</th>
+                                        <th>面</th>
+                                        <th>優</th>
+                                        <th>エ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shokudoEatTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="shokudo-eat-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="shokudoEatMoney">0円</span>
+                        </div>
+                        <div class="shokudo-eat-panel" id="shokudoEatPanel">
+                            <p class="shokudo-no-select">メニューを選んでください</p>
+                        </div>
+                        <div class="shop2-insufficient" id="shokudoEatFullWarn" style="display:none;">満腹のため食事できません</div>
+                        <div class="shop2-insufficient" id="shokudoEatWarn" style="display:none;">所持金が足りません</div>
+                        <button id="shokudoEatOrderBtn" class="shop2-purchase-btn" onclick="purchaseShokudoEat()" disabled>注文する</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- テイクアウトメニュー一覧ビュー -->
+            <div id="shokudoListView" class="shop2-listview" style="display:none;">
+                <div class="shop2-layout">
+
+                    <!-- 左パネル -->
+                    <div class="shop2-left">
+                        <div class="shop2-tabs-wrapper">
+                            <div class="shop2-tabs-scroll">
+                                <div class="shop2-tabs" id="shokudoTabs">
+                                    <!-- JSで生成 -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shop2-table-container">
+                            <table class="shop2-table" id="shokudoTable">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="14">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th rowspan="2">カロリー</th>
+                                        <th rowspan="2">備考</th>
+                                        <th rowspan="2">価格</th>
+                                        <th rowspan="2">在庫</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>国</th><th>数</th><th>理</th><th>社</th>
+                                        <th>英</th><th>音</th><th>美</th><th>体</th>
+                                        <th>気</th><th>ル</th><th>素</th><th>面</th>
+                                        <th>優</th><th>エ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shokudoTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 右パネル -->
+                    <div class="shop2-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="shokudoMoney">0円</span>
+                        </div>
+                        <div class="shop2-cart">
+                            <div class="shop2-cart-title">カートの中身</div>
+                            <div class="shop2-cart-items" id="shokudoCartItems">
+                                <p class="shop2-cart-empty">アイテムを選んでください</p>
+                            </div>
+                            <div class="shop2-cart-total">
+                                <span>合計</span>
+                                <span class="shop2-total-price" id="shokudoTotalPrice">0円</span>
+                            </div>
+                            <div class="shop2-insufficient" id="shokudoInsufficient" style="display:none;">残高が足りません</div>
+                        </div>
+                        <button class="btn shop2-purchase-btn" id="shokudoPurchaseBtn" onclick="purchaseShokudoItems()" disabled>注文する</button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 注文完了ビュー -->
+            <div id="shokudoCompleteView" style="display: none;" class="shop2-complete-view shokudo-complete-view">
+                <div class="shop2-complete-content" id="shokudoCompleteContent">
+                    <!-- JavaScriptで生成 -->
+                </div>
+                <div class="confirm-buttons" id="shokudoCompleteButtons">
+                    <!-- JavaScriptで生成 -->
+                </div>
+            </div>
+            </div><!-- /shop2-content-area -->
+        </div>
+    </div>
+
+    <!-- 不動産屋モーダル -->
+    <div class="modal" id="hudosanModal">
+        <div class="modal-content shop2-modal-content">
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn arcade-titlebar-back-btn" id="hudosanBackBtn" onclick="hudosanBack()" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeHudosan()">✕</button>
+            </div>
+
+            <!-- ロビービュー -->
+            <div id="hudosanLobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">不動産屋</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">いらっしゃいませ。<br>住まいをお探しですか？</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" id="hudosanBuyLobbyBtn" onclick="openHudosanBuy()"
+                            onmouseenter="showFacilityDesc('hudosan', 'house')" onmouseleave="hideFacilityDesc('hudosan')">
+                            <img src="public/icon/house.png" alt="家を買う" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">家を買う</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                            onmouseenter="showFacilityDesc('hudosan', 'apart')" onmouseleave="hideFacilityDesc('hudosan')">
+                            <img src="public/icon/apart.png" alt="家を借りる" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">家を借りる</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                            onmouseenter="showFacilityDesc('hudosan', 'simulation')" onmouseleave="hideFacilityDesc('hudosan')">
+                            <img src="public/icon/simulation.png" alt="マイホーム体験" class="facility-lobby-btn-icon">
+                            <span class="facility-lobby-btn-label">マイホーム体験</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img src="haikei/fudosan.jpg" alt="不動産屋" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="hudosanLobbyDesc"></div>
+                </div>
+            </div>
+
+            <div class="shop2-content-area" id="hudosanContentArea" style="display:none;">
+
+            <!-- 購入フロービュー -->
+            <div id="hudosanBuyView" style="display:none;" class="hudosan-buy-view">
+
+
+                <!-- ステップ1: 場所を選ぶ -->
+                <div id="hudosanBuyStep1" class="hudosan-buy-step-content">
+                    <div class="hudosan-step1-body">
+                        <!-- 左: タイトル＋説明 -->
+                        <div class="hudosan-step1-left">
+                            <div class="hudosan-step1-info">
+                                <h3 class="hudosan-step1-title">
+                                    <span class="hudosan-step-sublabel">step.1 / 3</span>
+                                    右のタウンマップから<br>家を建てる場所を選んでください
+                                </h3>
+                                <ul class="hudosan-step1-desc">
+                                    <li>SALEと書かれた場所に家を建てることができます。</li>
+                                    <li>建築費用は「タウンの地価＋家の値段＋プラン代」が必要です。</li>
+                                    <li>家を持つと、以後ログイン時に建築したタウンからスタートします。</li>
+                                </ul>
+                                <button class="btn hudosan-next-btn" id="hudosanStep1NextBtn" onclick="hudosanGoStep2()" disabled>次へ</button>
+                            </div>
+                        </div>
+                        <!-- 右: タウン情報バー＋ミニマップ -->
+                        <div class="hudosan-step1-map-area">
+                            <div class="hudosan-step1-map-info">
+                                <div class="hudosan-map-info-cell">
+                                    <span class="hudosan-map-landprice">タウン名：<span class="hudosan-map-value" id="hudosanMapTownName"></span></span>
+                                </div>
+                                <div class="hudosan-map-info-cell">
+                                    <span class="hudosan-map-landprice">地価：<span class="hudosan-map-value" id="hudosanMapLandPrice"></span></span>
+                                </div>
+                                <div class="hudosan-map-info-cell">
+                                    <span class="hudosan-map-landprice">場所：<span class="hudosan-map-value" id="hudosanMapCoordHint"></span></span>
+                                </div>
+                            </div>
+                            <div class="hudosan-mini-map-wrap">
+                                <table class="hudosan-mini-map" id="hudosanMiniMapTable"></table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hudosan-step-footer"></div>
+                </div>
+
+                <!-- ステップ2: 外観を選ぶ -->
+                <div id="hudosanBuyStep2" class="hudosan-buy-step-content" style="display:none;">
+                    <div class="hudosan-step2-body">
+                        <div class="hudosan-step2-left">
+                            <h3 class="hudosan-step2-title">
+                                <span class="hudosan-step-sublabel">step.2 / 3</span>
+                                外装デザインを選んでください
+                            </h3>
+                            <div class="hudosan-step2-left-inner">
+                                <div class="hudosan-house-grid-wrap">
+                                    <div class="hudosan-house-grid" id="hudosanHouseGrid"></div>
+                                </div>
+                                <button class="btn hudosan-next-btn" id="hudosanStep2NextBtn" onclick="hudosanGoStep3()" disabled>次へ</button>
+                            </div>
+                        </div>
+                        <div class="hudosan-step2-right">
+                            <div class="hudosan-step2-preview" id="hudosanHousePreview">
+                                <p class="hudosan-step2-placeholder">プレビュー画面</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ステップ3: プランを選ぶ -->
+                <div id="hudosanBuyStep3" class="hudosan-buy-step-content" style="display:none;">
+                    <!-- 左：プラン選択 -->
+                    <div class="hudosan-step3-left">
+                        <div class="hudosan-step3-left-inner">
+                            <div>
+                                <h3 class="hudosan-step2-title">
+                                    <span class="hudosan-step-sublabel">step.3 / 3</span>
+                                    プランを<br>選んでください
+                                </h3>
+                            </div>
+                            <div id="hudosanRankGrid"></div>
+                        </div>
+                        <button class="btn hudosan-next-btn" id="hudosanStep3NextBtn" onclick="hudosanGoStep4()" disabled>次へ</button>
+                    </div>
+                    <!-- 右：コンテンツ選択 -->
+                    <div class="hudosan-step3-right">
+                        <div class="hudosan-step3-right-head">
+                            <div class="hudosan-step3-right-head-left">
+                                <p class="hudosan-content-select-title" id="hudosanContentSelectTitle">プランを選んでください</p>
+                                <p class="hudosan-lot-info" id="hudosanRankInfo"></p>
+                            </div>
+                            <div class="hudosan-step3-rank-price" id="hudosanStep3RankPrice" style="display:none;">
+                                料金：<span id="hudosanStep3RankPriceValue">—</span>
+                            </div>
+                        </div>
+                        <div class="hudosan-content-grid" id="hudosanContentCheckList"></div>
+                    </div>
+                </div>
+
+                <!-- ステップ4: 確認・購入 -->
+                <div id="hudosanBuyStep4" class="hudosan-buy-step-content" style="display:none;">
+                    <p class="hudosan-step4-title">こちらの内容でよろしいでしょうか？</p>
+                    <p class="hudosan-step4-note">※外装とプランはあとから変更できます。</p>
+                    <div class="hudosan-step4-body">
+                        <!-- 左カラム -->
+                        <div class="hudosan-step4-left">
+                            <div class="hudosan-step4-house-card">
+                                <img class="hudosan-confirm-house-img" id="hudosanConfirmHouseImg" src="" alt="">
+                                <div class="hudosan-step4-house-text">
+                                    <div class="hudosan-step4-house-name" id="hudosanConfirmHouseName">—</div>
+                                    <div class="hudosan-step4-house-coord">場所：<span id="hudosanConfirmCoord">—</span></div>
+                                </div>
+                                <div class="hudosan-step4-card-divider"></div>
+                                <div class="hudosan-step4-plan-info">
+                                    <div class="hudosan-step4-plan-name" id="hudosanConfirmRankName">—</div>
+                                    <div class="hudosan-step4-plan-contents" id="hudosanConfirmContents">—</div>
+                                </div>
+                            </div>
+                            <div class="hudosan-preview-map-wrap" id="hudosanStep4MapWrap" style="visibility:hidden;">
+                                <table class="hudosan-neighborhood-map" id="hudosanStep4Map"></table>
+                                <div class="hudosan-map-overlay-label">建設イメージ</div>
+                            </div>
+                        </div>
+                        <div class="hudosan-step4-col-divider"></div>
+                        <!-- 右カラム -->
+                        <div class="hudosan-step4-right">
+                            <div class="hudosan-step4-money">
+                                預金残高
+                                <span id="hudosanConfirmMoney">—</span>
+                            </div>
+                            <div class="hudosan-cost-table">
+                                <div class="hudosan-cost-table-title">建設費用</div>
+                                <div class="hudosan-cost-separator"></div>
+                                <div class="hudosan-cost-row hudosan-cost-addend">
+                                    <span class="hudosan-cost-label">地価</span>
+                                    <span class="hudosan-cost-value" id="hudosanCostLand">—</span>
+                                </div>
+                                <div class="hudosan-cost-row hudosan-cost-addend">
+                                    <span class="hudosan-cost-label">外装費</span>
+                                    <span class="hudosan-cost-value" id="hudosanCostHouse">—</span>
+                                </div>
+                                <div class="hudosan-cost-row hudosan-cost-addend hudosan-cost-addend--last">
+                                    <span class="hudosan-cost-label">プラン代</span>
+                                    <span class="hudosan-cost-value" id="hudosanCostRank">—</span>
+                                </div>
+                                <div class="hudosan-cost-separator"></div>
+                                <div class="hudosan-cost-row hudosan-cost-total">
+                                    <span class="hudosan-cost-label">合計</span>
+                                    <span class="hudosan-cost-value" id="hudosanCostTotal">—</span>
+                                </div>
+                            </div>
+                            <p class="hudosan-insufficient" id="hudosanBuyInsufficient" style="display:none;">預金が足りません</p>
+                            <p class="hudosan-insufficient" id="hudosanBuyAlreadyOwned" style="display:none;">このタウンにはすでに家があるため、購入はできません</p>
+                            <button class="btn hudosan-purchase-btn" id="hudosanPurchaseBtn" onclick="executeHudosanPurchase()">家を購入する</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 購入完了ビュー -->
+                <div id="hudosanCompleteView" class="hudosan-complete-view" style="display:none;">
+                    <div class="hudosan-complete-inner">
+                        <div class="hudosan-complete-icon" id="hudosanCompleteIcon"></div>
+                        <p class="hudosan-complete-msg">おめでとうございます！<br>新しいお家が建ちました！</p>
+                        <p class="hudosan-complete-coord" id="hudosanCompleteCoord"></p>
+                    </div>
+                    <div class="hudosan-step-footer">
+                        <button class="btn hudosan-next-btn" onclick="closeHudosan()">閉じる</button>
+                    </div>
+                </div>
+
+            </div><!-- /hudosanBuyView -->
+
+            </div><!-- /hudosanContentArea -->
+        </div>
+    </div>
+
+    <!-- マイホームモーダル -->
+    <div class="modal" id="myhouseModal">
+        <div class="modal-content shop2-modal-content myhouse-modal-content">
+            <div class="win-titlebar-facility">
+                <button class="facility-back-btn" id="diaryComposeBackBtn" onclick="diaryEditId=null;renderDiaryContent(document.getElementById('myhouseRight'))" style="display:none;">← 戻る</button>
+                <span class="win-titlebar-facility-title" id="myhouseTitle">マイホーム</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeMyHome()">✕</button>
+                </div>
+            </div>
+            <div class="myhouse-body">
+
+                <!-- サイドバー -->
+                <div class="myhouse-sidebar" id="myhouseSidebar">
+                    <!-- JSで生成 -->
+                </div>
+
+                <!-- 右エリア -->
+                <div class="myhouse-right" id="myhouseRight">
+                    <!-- JSで生成 -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- お賽銭モーダル -->
+    <div class="modal" id="saisenModal" style="display:none;">
+        <div class="modal-content saisen-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeSaisenModal()">✕</button>
+            </div>
+            <div class="saisen-modal-body">
+                <p class="saisen-desc">金額を選んでください</p>
+                <div class="saisen-amount-list" id="saisenAmountList"></div>
+                <button class="saisen-confirm-btn" id="saisenConfirmBtn" onclick="confirmSaisen()" disabled>お賽銭する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- URLスペース プレビューモーダル -->
+    <div class="modal" id="urlPreviewModal" style="display:none;">
+        <div class="modal-content url-preview-modal-content">
+            <div class="url-preview-titlebar">
+                <span class="url-preview-titlebar-title">プレビュー</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn url-preview-titlebar-close" onclick="closeUrlPreview()">✕</button>
+                </div>
+            </div>
+            <div class="url-preview-modal-body">
+                <div class="url-preview-nav-row" id="urlPreviewNavRow">
+                    <!-- JSで生成 -->
+                </div>
+                <div class="url-preview-view-area" id="urlPreviewViewArea">
+                    <!-- JSで生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 売却モーダル -->
+    <div class="modal" id="sellModal">
+        <div class="modal-content shop2-modal-content">
+            <div class="win-titlebar-facility">
+                <button class="mailbox-back-btn shop2-titlebar-back-btn" onclick="backFromSell()">← 戻る</button>
+                <span class="win-titlebar-facility-title"></span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeSellShop()">✕</button>
+            </div>
+
+            <div class="shop2-content-area">
+
+            <!-- 売却リストビュー -->
+            <div id="sellListView" style="display:none;">
+                <div class="shop2-layout">
+
+                    <!-- 左パネル -->
+                    <div class="shop2-left">
+                        <div class="shop2-table-container">
+                            <table class="shop2-table" id="sellTable">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="14">アップする能力値
+                                            <span class="gym-hatena-wrapper">
+                                                <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                                <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                            </span>
+                                        </th>
+                                        <th rowspan="2">売却<br>価格</th>
+                                        <th rowspan="2">備考</th>
+                                        <th rowspan="2">使用<br>回数</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>国</th><th>数</th><th>理</th><th>社</th><th>英</th><th>音</th><th>美</th>
+                                        <th>体</th><th>気</th><th>ル</th><th>素</th><th>面</th><th>優</th><th>エ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sellTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 右パネル -->
+                    <div class="shop2-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="sellMoneyValue">0円</span>
+                        </div>
+                        <div class="shop2-cart">
+                            <div class="shop2-cart-title">売却するアイテム</div>
+                            <div class="shop2-cart-items" id="sellCartItems">
+                                <p class="shop2-cart-empty">アイテムを選んでください</p>
+                            </div>
+                            <div class="shop2-cart-total">
+                                <span>合計</span>
+                                <span class="shop2-total-price" id="sellTotalPrice">0円</span>
+                            </div>
+                        </div>
+                        <button class="btn shop2-purchase-btn" id="sellButton" onclick="sellSelectedItems()" disabled>売却する</button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 売却完了ビュー -->
+            <div id="sellCompleteView" style="display:none;" class="shop2-complete-view">
+                <div class="shop2-complete-content">
+                    <p class="shop2-complete-heading">売却が完了しました！</p>
+                    <p class="shop2-complete-subheading">ありがとうございました。</p>
+                </div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeSellShopAndOpenInventory()">所持品を見る</button>
+                    <button class="btn board-btn-back" onclick="sellBackToList()">続けて売却</button>
+                </div>
+            </div>
+
+            </div><!-- /.shop2-content-area -->
+        </div>
+    </div>
+
+    <!-- アバター選択モーダル -->
+
+    <!-- 名前変更モーダル -->
+    <div class="modal" id="nameModal">
+        <div class="modal-content">
+            <h3>✏️ 名前を変更</h3>
+            <p>新しい名前を入力してね</p>
+            <input type="text" id="nameInput" class="name-input" maxlength="10" placeholder="名前を入力...">
+            <div class="modal-buttons">
+                <button class="btn btn-success" onclick="saveName()">決定</button>
+                <button class="btn btn-close" onclick="closeNameModal()">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 所持品モーダル -->
+    <div class="modal" id="inventoryModal">
+        <div class="modal-content inventory-modal-content shop-modal-content">
+            <div class="win-titlebar">
+                <span class="win-titlebar-title" id="inventoryTitle">所持品リスト</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-close" onclick="closeInventoryModal()">✕</button>
+                </div>
+            </div>
+            <div class="inventory-modal-body">
+
+            <!-- 所持品一覧ビュー -->
+            <div id="inventoryListView">
+                <p style="font-size: 14px; color: #333; margin: 0 0 15px 0; text-align: left;">入手したアイテムを使用することができます。一度に持てるアイテム数は15個までです。</p>
+                <div class="inventory-table-container shop2-table-container">
+                    <table class="shop2-table" id="inventoryTable">
+                        <thead>
+                            <tr class="shop2-header-group">
+                                <th rowspan="2">商品名</th>
+                                <th colspan="14">アップする能力値
+                                    <span class="gym-hatena-wrapper">
+                                        <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                        <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                    </span>
+                                </th>
+                                <th colspan="2">消費パワー</th>
+                                <th rowspan="2">カロリー</th>
+                                <th rowspan="2">使用<br>間隔</th>
+                                <th rowspan="2">使用<br>回数</th>
+                            </tr>
+                            <tr class="shop2-header-sub">
+                                <th>国</th>
+                                <th>数</th>
+                                <th>理</th>
+                                <th>社</th>
+                                <th>英</th>
+                                <th>音</th>
+                                <th>美</th>
+                                <th>体</th>
+                                <th>気</th>
+                                <th>ル</th>
+                                <th>素</th>
+                                <th>面</th>
+                                <th>優</th>
+                                <th>エ</th>
+                                <th>身体</th>
+                                <th>頭脳</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <!-- JavaScriptで生成 -->
+                        </tbody>
+                    </table>
+                </div>
+                <p class="inventory-empty" id="inventoryEmpty">所持品がありません</p>
+                <div class="shop2-insufficient" id="inventoryFullMsg" style="visibility:hidden;">満腹のため、食事できません。</div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" id="inventoryUseBtn" onclick="useSelectedInventoryItem()" disabled>使う</button>
+                </div>
+            </div>
+
+            </div><!-- /.inventory-modal-body -->
+        </div>
+    </div>
+
+    <!-- 銀行取引完了モーダル -->
+    <div class="modal" id="bankResultModal">
+        <div class="bank-result-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title" id="bankResultModalTitle"></span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeBankResultModal()">✕</button>
+                </div>
+            </div>
+            <div class="bank-result-modal-body">
+                <div id="bankResultContent"></div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeBankResultModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- アイテム使用結果モーダル -->
+    <div class="modal" id="itemResultModal">
+        <div class="item-result-modal-content">
+            <div class="win-titlebar">
+                <span class="win-titlebar-title">使用結果</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-close" onclick="closeItemResultModal()">✕</button>
+                </div>
+            </div>
+            <div class="item-result-modal-body">
+                <div id="itemUsedContent"></div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeItemResultModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- つぶやきモーダル -->
+    <div class="modal" id="tweetModal">
+        <div class="tweet-modal-content">
+            <div class="win-titlebar">
+                <span class="win-titlebar-title">つぶやく</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-close" onclick="closeTweetModal()">✕</button>
+                </div>
+            </div>
+            <div class="tweet-modal-body">
+                <div class="tweet-compose-content" id="tweetComposeContent">
+                    <div class="tweet-compose-header">
+                        <span class="tweet-compose-avatar" id="tweetComposeAvatar">😊</span>
+                        <span class="tweet-compose-name" id="tweetComposeName">のん</span>
+                    </div>
+                    <p class="tweet-cooldown-msg" id="tweetCooldownMsg" style="display: none;">
+                        次につぶやきができるまであと <span id="tweetCooldownTime">3:00</span>
+                    </p>
+                    <!-- テーマエリア（テキストエリアの上） -->
+                    <div class="tweet-tag-area" id="tweetTagArea" style="display:none;">
+                        <span class="tweet-tag-chip" id="tweetTagChip"></span>
+                    </div>
+                    <textarea id="tweetInput" class="tweet-input" placeholder="いまどうしてる？"></textarea>
+                    <div class="tweet-compose-footer">
+                        <span class="tweet-char-count"><span id="tweetCharCount">0</span>/60</span>
+                        <button class="btn btn-primary" id="tweetSubmitBtn" onclick="submitTweet()">投稿する</button>
+                    </div>
+                </div>
+
+                <!-- チャレンジ報酬結果ビュー -->
+                <div id="challengeRewardView" style="display:none;" class="challenge-reward-view">
+                    <p class="challenge-reward-message" id="challengeRewardMessage"></p>
+                    <button class="challenge-reward-ok-btn" onclick="closeChallengeReward()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掲示板ロビーモーダル -->
+    <div class="modal" id="boardLobbyModal">
+        <div class="modal-content board-lobby-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title">掲示板</span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeBoardLobby()">✕</button>
+            </div>
+            <div id="boardLobbyView" class="facility-lobby">
+                <!-- 左端ストライプ -->
+                <div class="facility-lobby-stripe"></div>
+                <!-- 左パネル -->
+                <div class="facility-lobby-left">
+                    <div class="facility-lobby-name">掲示板</div>
+                    <div class="facility-lobby-divider"></div>
+                    <p class="facility-lobby-greeting">ようこそ街の掲示板へ！<br>どの掲示板を見ますか？</p>
+                    <div class="facility-lobby-btns">
+                        <button class="facility-lobby-btn" onclick="openBoard('intro')"
+                            onmouseenter="showFacilityDesc('board', 'intro')" onmouseleave="hideFacilityDesc('board')">
+                            <span class="facility-lobby-btn-icon facility-lobby-btn-emoji">👋</span>
+                            <span class="facility-lobby-btn-label">自己紹介BBS</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="openBoard('happy')"
+                            onmouseenter="showFacilityDesc('board', 'happy')" onmouseleave="hideFacilityDesc('board')">
+                            <span class="facility-lobby-btn-icon facility-lobby-btn-emoji">☀️</span>
+                            <span class="facility-lobby-btn-label">ハッピ〜掲示板</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="openBoard('recommend')"
+                            onmouseenter="showFacilityDesc('board', 'recommend')" onmouseleave="hideFacilityDesc('board')">
+                            <span class="facility-lobby-btn-icon facility-lobby-btn-emoji">💡</span>
+                            <span class="facility-lobby-btn-label">おすすめ情報BBS</span>
+                        </button>
+                        <button class="facility-lobby-btn" onclick="openBoard('question')"
+                            onmouseenter="showFacilityDesc('board', 'question')" onmouseleave="hideFacilityDesc('board')">
+                            <span class="facility-lobby-btn-icon facility-lobby-btn-emoji">❓</span>
+                            <span class="facility-lobby-btn-label">ギモン解決！BBS</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- 右パネル -->
+                <div class="facility-lobby-right">
+                    <img id="boardLobbyImg" src="haikei/board.png" alt="掲示板" class="facility-lobby-img">
+                    <div class="facility-lobby-desc" id="boardLobbyDesc"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 掲示板モーダル -->
+    <div class="modal" id="boardModal">
+        <div class="modal-content board-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title">ギモン解決！BBS</span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeBoard()">✕</button>
+            </div>
+            <div class="board-modal-body">
+            <!-- ヘッダー（常に表示） -->
+            <div class="board-header" id="boardHeader">
+                <h2 class="board-title">ギモン解決！BBS</h2>
+                <p class="board-description">みんなのギモンを解決するための掲示板です。<br>わからないことがあれば、この掲示板で聞いてみましょう！</p>
+            </div>
+
+            <!-- メインビュー（一覧表示） -->
+            <div class="board-main-view" id="boardMainView">
+                <div class="board-top">
+                    <button class="btn board-new-post-btn" onclick="openNewPostForm()">新規投稿</button>
+                </div>
+                <div class="board-bottom">
+                <div class="board-bottom-left">
+                    <div class="board-post-list" id="boardPostList">
+                        <!-- JavaScriptで生成 -->
+                    </div>
+                </div>
+                <div class="board-bottom-right">
+                    <div class="board-category">
+                        <div class="board-category-title">カテゴリ一覧</div>
+                        <div class="board-category-line"></div>
+                        <ul class="board-category-list">
+                            <li onclick="selectCategory(null)">すべて</li>
+                            <li onclick="selectCategory('趣味')">趣味</li>
+                            <li onclick="selectCategory('暮らし')">暮らし</li>
+                            <li onclick="selectCategory('健康・美容')">健康・美容</li>
+                            <li onclick="selectCategory('仕事')">仕事</li>
+                            <li onclick="selectCategory('人間関係')">人間関係</li>
+                            <li onclick="selectCategory('恋愛')">恋愛</li>
+                            <li onclick="selectCategory('ゲーム')">ゲーム</li>
+                            <li onclick="selectCategory('ファッション')">ファッション</li>
+                            <li onclick="selectCategory('グルメ')">グルメ</li>
+                            <li onclick="selectCategory('トレンド')">トレンド</li>
+                            <li onclick="selectCategory('子育て')">子育て</li>
+                            <li onclick="selectCategory('家電・ガジェット')">家電・ガジェット</li>
+                            <li onclick="selectCategory('学問')">学問</li>
+                            <li onclick="selectCategory('お金')">お金</li>
+                            <li onclick="selectCategory('スポーツ')">スポーツ</li>
+                            <li onclick="selectCategory('乗り物・旅行')">乗り物・旅行</li>
+                            <li onclick="selectCategory('雑談')">雑談</li>
+                            <li onclick="selectCategory('その他')">その他</li>
+                        </ul>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- 新規投稿フォーム（非表示） -->
+            <div class="board-new-post-view" id="boardNewPostView" style="display: none;">
+                <div class="board-form-group">
+                    <label class="board-form-label">タイトル</label>
+                    <input type="text" class="board-form-input" id="newPostTitle" placeholder="質問のタイトルを入力..." maxlength="50">
+                </div>
+                <div class="board-form-group">
+                    <label class="board-form-label">カテゴリー（3つまで）</label>
+                    <div class="board-form-categories">
+                        <select class="board-form-select" id="newPostCategory1">
+                            <option value="">選択してください</option>
+                        </select>
+                        <select class="board-form-select" id="newPostCategory2">
+                            <option value="">選択してください</option>
+                        </select>
+                        <select class="board-form-select" id="newPostCategory3">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="board-form-group board-form-group-body">
+                    <label class="board-form-label">本文</label>
+                    <textarea class="board-form-textarea" id="newPostBody" placeholder="質問の内容を入力..." maxlength="2000" oninput="updateBodyCharCount()"></textarea>
+                    <div class="board-form-char-count"><span id="bodyCharCount">0</span> / 2000</div>
+                </div>
+                <div class="board-form-buttons">
+                    <button class="btn board-btn-back" onclick="closeNewPostForm()">戻る</button>
+                    <button class="btn board-btn-confirm" onclick="showPostConfirm()">確認画面へ</button>
+                </div>
+            </div>
+
+            <!-- 投稿確認画面（非表示） -->
+            <div class="board-confirm-view" id="boardConfirmView" style="display: none;">
+                <div class="board-confirm-header">
+                    <span class="board-confirm-header-title">投稿内容の確認</span>
+                </div>
+                <div class="board-confirm-content">
+                    <div class="board-confirm-section">
+                        <div class="board-confirm-label">タイトル</div>
+                        <div class="board-confirm-value" id="confirmTitle"></div>
+                    </div>
+                    <div class="board-confirm-divider"></div>
+                    <div class="board-confirm-section">
+                        <div class="board-confirm-label">カテゴリ</div>
+                        <div class="board-confirm-value" id="confirmCategories"></div>
+                    </div>
+                    <div class="board-confirm-divider"></div>
+                    <div class="board-confirm-section">
+                        <div class="board-confirm-label">本文</div>
+                        <div class="board-confirm-value board-confirm-body" id="confirmBody"></div>
+                    </div>
+                </div>
+                <div class="board-confirm-buttons">
+                    <button class="btn board-btn-back" onclick="backToEditForm()">戻る</button>
+                    <button class="btn board-btn-submit" onclick="submitPost()">投稿する</button>
+                </div>
+            </div>
+
+            <!-- 質問閲覧画面（非表示） -->
+            <div class="board-detail-view" id="boardDetailView" style="display: none;">
+                <!-- 上部：戻るボタンとタイトル -->
+                <div class="board-detail-header">
+                    <button class="btn board-btn-back-small" onclick="closeDetailView()">← 戻る</button>
+                    <span class="board-detail-header-title">ギモン解決！BBS</span>
+                </div>
+
+                <!-- 中央：質問内容 -->
+                <div class="board-detail-content">
+                    <!-- 投稿者情報 -->
+                    <div class="board-detail-author-row">
+                        <div class="board-detail-avatar" id="detailAvatar">😊</div>
+                        <div class="board-detail-author-info">
+                            <div class="board-detail-author-name" id="detailAuthorName">のん</div>
+                            <div class="board-detail-meta">
+                                <span class="board-detail-date" id="detailDate">2026/2/4 17:39</span>
+                                <span class="board-detail-separator">|</span>
+                                <span class="board-detail-categories" id="detailCategories">お金 , 仕事 , ゲーム</span>
+                            </div>
+                        </div>
+                        <img class="board-detail-bookmark" id="detailBookmark" src="status/Bookmark_A.png" onclick="toggleBookmark()" alt="ブックマーク">
+                    </div>
+
+                    <!-- タイトル -->
+                    <h3 class="board-detail-title" id="detailTitle">おすすめの稼ぎ方ってありますか？</h3>
+
+                    <!-- 区切り線 -->
+                    <div class="board-detail-divider"></div>
+
+                    <!-- 本文 -->
+                    <div class="board-detail-body" id="detailBody">
+                        ゲームを始めたばかりなのですが、お金がなかなか貯まりません。
+                        みなさんはどうやってお金を稼いでいますか？
+                        おすすめの方法があれば教えてください！
+                    </div>
+
+                    <!-- 回答するボタン -->
+                    <div class="board-detail-answer-btn-area">
+                        <button class="btn board-btn-answer" onclick="toggleAnswerForm()">回答する</button>
+                    </div>
+
+                    <!-- 回答フォーム（非表示） -->
+                    <div class="board-answer-form" id="boardAnswerForm" style="display: none;">
+                        <textarea class="board-answer-textarea" id="answerText" placeholder="回答を入力..." maxlength="1000"></textarea>
+                        <div class="board-answer-buttons">
+                            <button class="btn board-btn-back" onclick="toggleAnswerForm()">キャンセル</button>
+                            <button class="btn board-btn-confirm" onclick="submitAnswer()">回答を投稿</button>
+                        </div>
+                    </div>
+
+                    <!-- 回答一覧（JavaScriptで生成） -->
+                    <div class="board-answers-section" id="boardAnswersSection">
+                        <!-- renderAnswers()で生成 -->
+                    </div>
+                </div>
+            </div>
+            </div><!-- /.board-modal-body -->
+        </div>
+    </div>
+
+    <!-- 温泉施設モーダル（通常風呂） -->
+    <div class="modal" id="onsenModal">
+        <div class="modal-content onsen-modal-content">
+            <!-- ロビービュー -->
+            <div id="onsenLobbyView">
+                <div class="win-titlebar-facility" id="onsenLobbyCloseBtn">
+                    <span class="win-titlebar-facility-title"></span>
+                    <div class="win-titlebar-btns">
+                        <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeOnsenModal()">✕</button>
+                    </div>
+                </div>
+                <div class="facility-lobby">
+                    <!-- 左端ストライプ -->
+                    <div class="facility-lobby-stripe"></div>
+                    <!-- 左パネル -->
+                    <div class="facility-lobby-left">
+                        <div class="facility-lobby-name">温泉施設</div>
+                        <div class="facility-lobby-divider"></div>
+                        <p class="facility-lobby-greeting">いらっしゃいませ。<br>ごゆっくりおくつろぎください。</p>
+                        <div class="facility-lobby-btns">
+                            <button class="facility-lobby-btn" onclick="normalBath()"
+                                onmouseenter="showFacilityDesc('onsen', 'normal')" onmouseleave="hideFacilityDesc('onsen')">
+                                <img src="public/icon/onsen.png" alt="通常風呂" class="facility-lobby-btn-icon">
+                                <span class="facility-lobby-btn-label">通常風呂</span>
+                            </button>
+                            <button class="facility-lobby-btn" onclick="showToast('現在準備中です')"
+                                onmouseenter="showFacilityDesc('onsen', 'ad')" onmouseleave="hideFacilityDesc('onsen')">
+                                <img src="public/icon/ad.png" alt="広告風呂" class="facility-lobby-btn-icon">
+                                <span class="facility-lobby-btn-label">広告風呂</span>
+                            </button>
+                            <button class="facility-lobby-btn" onclick="closeOnsenLobbyAndOpenShop()"
+                                onmouseenter="showFacilityDesc('onsen', 'shop')" onmouseleave="hideFacilityDesc('onsen')">
+                                <img src="public/icon/milk.png" alt="コンビニ" class="facility-lobby-btn-icon">
+                                <span class="facility-lobby-btn-label">コンビニ</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 右パネル -->
+                    <div class="facility-lobby-right">
+                        <img id="onsenLobbyImg" src="haikei/onsen3.jpg" alt="温泉" class="facility-lobby-img">
+                        <div class="facility-lobby-desc" id="onsenLobbyDesc"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 入浴ビュー -->
+            <div id="onsenBathView" style="display:none;">
+                <div class="onsen-bg-wrapper">
+                    <img src="haikei/onsen.png" alt="温泉" class="onsen-bg-img" id="onsenBgImg">
+                    <div class="onsen-status-box">
+                        <p class="onsen-status-title">温泉入浴中…</p>
+                        <div class="onsen-status-row">
+                            <span class="onsen-status-label">ただいまの身体パワー</span>
+                            <div class="status-bar-container onsen-bar-container">
+                                <div class="status-bar" id="onsenHealthBar"></div>
+                                <span class="status-bar-text"><span id="onsenHealth">0</span>/<span id="onsenMaxHealth">100</span></span>
+                            </div>
+                        </div>
+                        <div class="onsen-status-row">
+                            <span class="onsen-status-label">ただいまの頭脳パワー</span>
+                            <div class="status-bar-container onsen-bar-container">
+                                <div class="status-bar" id="onsenIntelligenceBar"></div>
+                                <span class="status-bar-text"><span id="onsenIntelligence">0</span>/<span id="onsenMaxIntelligence">100</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="bgm-btn" id="bgmBtn" onclick="toggleBgm()"><img src="status/BGM.png" alt="BGM" class="bgm-btn-img"></button>
+                    <button class="btn btn-close onsen-close-btn" onclick="closeOnsenModal()">お湯から出る</button>
+                </div>
+            </div>
+
+            <!-- コンビニビュー -->
+            <div id="onsenShopView" class="shop2-listview" style="display:none;">
+                <div class="win-titlebar-facility onsen-shop-titlebar">
+                    <button class="mailbox-back-btn onsen-shop-back-btn" onclick="openOnsenLobby()">← 戻る</button>
+                    <span class="win-titlebar-facility-title">コンビニ</span>
+                    <div class="win-titlebar-btns">
+                        <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeOnsenShop()">✕</button>
+                    </div>
+                </div>
+                <div class="shop2-layout">
+                    <!-- 左パネル -->
+                    <div class="shop2-left">
+                        <div class="shop2-table-container">
+                            <table class="shop2-table" id="onsenShopTable">
+                                <thead>
+                                    <tr class="shop2-header-group">
+                                        <th rowspan="2">商品名</th>
+                                        <th colspan="2">アップするパワー</th>
+                                        <th rowspan="2">カロリー</th>
+                                        <th rowspan="2">備考</th>
+                                        <th rowspan="2">価格</th>
+                                        <th rowspan="2">在庫</th>
+                                    </tr>
+                                    <tr class="shop2-header-sub">
+                                        <th>身体</th>
+                                        <th>頭脳</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="onsenShopTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- 右パネル -->
+                    <div class="shop2-right">
+                        <div class="shop2-right-money">
+                            現在の所持金<br>
+                            <span id="onsenShopMoney">0円</span>
+                        </div>
+                        <div class="shop2-cart">
+                            <div class="shop2-cart-title">カートの中身</div>
+                            <div class="shop2-cart-items" id="onsenShopCartItems">
+                                <p class="shop2-cart-empty">商品を選んでください</p>
+                            </div>
+                            <div class="shop2-cart-total">
+                                <span>合計</span>
+                                <span class="shop2-total-price" id="onsenShopTotalPrice">0円</span>
+                            </div>
+                            <div class="shop2-insufficient" id="onsenShopWarn" style="display:none;">残高が足りません</div>
+                        </div>
+                        <button class="btn shop2-purchase-btn" id="onsenShopOrderBtn" onclick="purchaseOnsenShop()" disabled>購入する</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- コンビニ購入完了ビュー -->
+            <div id="onsenShopCompleteView" style="display:none;" class="shop2-complete-view">
+                <div class="shop2-complete-content" id="onsenShopCompleteContent"></div>
+                <div class="confirm-buttons">
+                    <button class="btn board-btn-confirm" onclick="closeOnsenShopAndOpenInventory()">所持品を見る</button>
+                    <button class="btn board-btn-back" onclick="openOnsenLobby()">ロビーに戻る</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 職業安定所モーダル -->
+    <div class="modal" id="helloworkModal">
+        <div class="modal-content hellowork-modal-content">
+            <!-- タイトルバー -->
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title">職業安定所</span>
+                <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeHelloworkModal()">✕</button>
+            </div>
+            <!-- メインコンテンツ -->
+            <div class="hellowork-body">
+            <!-- 上部エリア（左上・右上） -->
+            <div class="hellowork-top">
+                <!-- 左上：説明エリア -->
+                <div class="hellowork-left">
+                    <p class="hellowork-title">ハローワークへようこそ！</p>
+                    <p class="hellowork-description">必要な条件・能力値を満たすと、その職業に就くことができます。（初級のみ）<br>中級・上級へは、能力値が基準に達すると自動的に昇格します。<br>なお、転職すると経験値・出勤回数・レベルは1からのスタートになります。</p>
+                </div>
+                <!-- 右上：就職・目標エリア -->
+                <div class="hellowork-right">
+                    <div class="hellowork-right-columns">
+                        <div class="hellowork-right-col">
+                            <p class="hellowork-available-title">● <span id="helloworkUserName">のん</span>さんが就職可能な職業</p>
+                            <select id="helloworkJobSelect" class="hellowork-job-dropdown">
+                                <option value="">-- 職業を選択 --</option>
+                            </select>
+                            <button class="btn btn-success" onclick="applyForJob()">この職業に就く</button>
+                        </div>
+                        <div class="hellowork-right-col">
+                            <p class="hellowork-available-title target-job-label">● 目標の職業<span class="gym-hatena-wrapper">
+                                    <img src="public/icon/hatena_orange.svg" alt="?" class="gym-hatena-icon hellowork-hatena-icon">
+                                    <span class="gym-hatena-tooltip">商店・食堂などで、目標職業に必要な能力値が表示されます。</span>
+                                </span></p>
+                            <div id="targetJobSelectArea">
+                                <select id="targetJobSelect" class="hellowork-job-dropdown">
+                                    <option value="">-- 職業を選択 --</option>
+                                </select>
+                            </div>
+                            <div id="targetJobDisplay" class="target-job-display" style="display:none;">
+                                <span id="targetJobName" class="target-job-name"></span>
+                            </div>
+                            <button id="targetJobBtn" class="btn btn-success" onclick="setTargetJob()">この職業を目標にする</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 下部エリア -->
+            <div class="hellowork-bottom" id="helloworkBottom">
+                <!-- クラスタブ -->
+                <div class="hellowork-tab-bar">
+                    <button class="hellowork-tab active" data-tier="1" onclick="switchJobTab(1)">初級</button>
+                    <button class="hellowork-tab" data-tier="2" onclick="switchJobTab(2)">中級</button>
+                    <button class="hellowork-tab" data-tier="3" onclick="switchJobTab(3)">上級</button>
+                    <div id="helloworkClassInfo" class="hellowork-class-info"></div>
+                </div>
+                <div class="hellowork-table-container">
+                    <table class="hellowork-table">
+                        <thead>
+                            <tr class="hellowork-header-group">
+                                <th rowspan="2">職業</th>
+                                <th colspan="14">必要な能力値
+                                    <span class="gym-hatena-wrapper">
+                                        <img src="status/hatena.png" alt="?" class="gym-hatena-icon">
+                                        <span class="gym-hatena-tooltip">国＝国語　数＝数学　理＝理科　社＝社会　英＝英語　音＝音楽　美＝美術　体＝体力　気＝気力　ル＝ルックス　素＝素早さ　面＝面白さ　優＝優しさ　エ＝エロさ</span>
+                                    </span>
+                                </th>
+                                <th colspan="2">条件</th>
+                                <th rowspan="2">消費<br>カロリー</th>
+                                <th rowspan="2">給料<br>(1回出勤)</th>
+                                <th rowspan="2">身体<br>消費</th>
+                                <th rowspan="2">頭脳<br>消費</th>
+                            </tr>
+                            <tr class="hellowork-header-sub">
+                                <th>国</th>
+                                <th>数</th>
+                                <th>理</th>
+                                <th>社</th>
+                                <th>英</th>
+                                <th>音</th>
+                                <th>美</th>
+                                <th>体</th>
+                                <th>気</th>
+                                <th>ル</th>
+                                <th>素</th>
+                                <th>面</th>
+                                <th>優</th>
+                                <th>エ</th>
+                                <th>体格指数</th>
+                                <th>性別</th>
+                            </tr>
+                        </thead>
+                        <tbody id="helloworkTableBody">
+                            <!-- JavaScriptで動的に生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </div><!-- /.hellowork-body -->
+
+            <!-- 就職完了ビュー -->
+            <div id="helloworkCompleteView" style="display: none;">
+                <div class="hellowork-complete-content">
+                    <p class="hellowork-complete-message">おめでとうございます！<br><span id="helloworkCompleteJobName">職業名</span>になりました。</p>
+                    <div class="hellowork-complete-details">
+                        <p>一回のお給料が<span id="helloworkCompleteSalary">0</span>円になりました。</p>
+                        <p>レベルアップボーナスが給料×<span id="helloworkCompleteBonus">0</span>倍もらえます。</p>
+                        <p>お仕事がんばっていきましょう！</p>
+                    </div>
+                </div>
+                <div class="hellowork-complete-buttons">
+                    <button class="btn btn-success" onclick="closeHelloworkModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 仕事モーダル -->
+    <div class="modal" id="workModal">
+        <div class="modal-content work-modal-content">
+            <div class="win-titlebar">
+                <span class="win-titlebar-title">出勤</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-close" onclick="closeWorkModal()">✕</button>
+                </div>
+            </div>
+            <div class="work-modal-body">
+                <div class="work-result-content">
+                    <p class="work-result-message" id="workResultMessage">仕事に出かけました！</p>
+                    <div class="work-result-details" id="workResultDetails">
+                        <!-- ここに詳細情報を追加予定 -->
+                    </div>
+                </div>
+                <div class="work-modal-buttons">
+                    <button class="btn btn-success" id="workOkBtn" onclick="closeWorkModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ショップ在庫管理 エラーモーダル -->
+    <div class="modal" id="shopinvErrorModal">
+        <div class="modal-content shopinv-error-modal-content">
+            <div class="shopinv-error-titlebar">
+                <span class="win-titlebar-title"></span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn" onclick="closeShopinvErrorModal()">✕</button>
+                </div>
+            </div>
+            <div class="shopinv-error-body">
+                <p class="shopinv-error-heading">ERROR！</p>
+                <p class="shopinv-error-message" id="shopinvErrorMessage"></p>
+                <div class="shopinv-error-buttons">
+                    <button class="shopinv-error-ok-btn" onclick="closeShopinvErrorModal()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 役場プロフィール登録モーダル -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content profile-modal-content">
+            <!-- 入力画面 -->
+            <div id="profileFormView">
+            <div class="profile-header">
+                <h3 class="profile-title">住民登録</h3>
+                <p class="profile-subtitle">まずはあなたのことを教えてね！<br>（入力した情報は、ユーザーの初期設定になります）</p>
+            </div>
+
+            <div class="profile-form">
+                <!-- 名前 -->
+                <div class="profile-field">
+                    <label class="profile-label">名前<span class="profile-label-note">（10文字まで）</span></label>
+                    <div class="profile-name-wrapper">
+                        <input type="text" id="profileName" class="profile-input" maxlength="10" placeholder="名前を入力..." oninput="validateProfileName()">
+                        <span class="profile-name-status" id="profileNameStatus"></span>
+                    </div>
+                    <p class="profile-hint" id="profileNameHint"></p>
+                </div>
+
+                <!-- プロフィールアイコン -->
+                <div class="profile-field">
+                    <label class="profile-label">プロフィールアイコン</label>
+                    <div class="profile-avatar-section">
+                        <div class="profile-avatar-preview" id="profileAvatarPreview">
+                            <img src="Profile/Profile1.png" alt="アバター" class="profile-avatar-img">
+                        </div>
+                        <button class="btn board-btn-confirm profile-avatar-btn" onclick="openProfileAvatarSelect()">アイコンを選ぶ</button>
+                        <label class="profile-bgcolor-btn">
+                            背景色を選ぶ
+                            <input type="color" id="profileBgColor" value="#FFB6C1" onchange="changeProfileBgColor(this.value)">
+                        </label>
+                    </div>
+                    <div class="profile-avatar-grid" id="profileAvatarGrid" style="display: none;">
+                        <!-- JavaScriptで生成 -->
+                    </div>
+                </div>
+
+                <!-- 性別〜体重（公開設定付き） -->
+                <div class="profile-public-section">
+                    <!-- 性別 -->
+                    <div class="profile-field-row">
+                        <div class="profile-field-left">
+                            <label class="profile-label">性別</label>
+                            <div class="profile-radio-row">
+                                <label class="profile-radio-label">
+                                    <input type="radio" name="profileGender" value="男性" class="profile-radio"> 男性
+                                </label>
+                                <label class="profile-radio-label">
+                                    <input type="radio" name="profileGender" value="女性" class="profile-radio"> 女性
+                                </label>
+                                <label class="profile-radio-label">
+                                    <input type="radio" name="profileGender" value="" class="profile-radio"> 選択しない
+                                </label>
+                            </div>
+                        </div>
+                        <div class="profile-field-right">
+                            <span class="profile-public-header">公開する</span>
+                            <input type="checkbox" id="profileGenderPublic" class="profile-public-checkbox" checked>
+                        </div>
+                    </div>
+
+                    <!-- 生年月日 -->
+                    <div class="profile-field-row">
+                        <div class="profile-field-left">
+                            <label class="profile-label">生年月日</label>
+                            <div class="profile-birthday-row">
+                                <select id="profileBirthYear" class="profile-select profile-select-year">
+                                    <option value="" disabled selected></option>
+                                </select>
+                                <span class="profile-birthday-sep">年</span>
+                                <select id="profileBirthMonth" class="profile-select profile-select-month">
+                                    <option value="" disabled selected></option>
+                                </select>
+                                <span class="profile-birthday-sep">月</span>
+                                <select id="profileBirthDay" class="profile-select profile-select-day">
+                                    <option value="" disabled selected></option>
+                                </select>
+                                <span class="profile-birthday-sep">日</span>
+                            </div>
+                        </div>
+                        <div class="profile-field-right">
+                            <input type="checkbox" id="profileBirthdayPublic" class="profile-public-checkbox" checked>
+                        </div>
+                    </div>
+
+                    <!-- 身長 -->
+                    <div class="profile-field-row">
+                        <div class="profile-field-left">
+                            <label class="profile-label">身長</label>
+                            <div class="profile-inline-row">
+                                <select id="profileHeight" class="profile-select profile-select-num">
+                                    <option value="" disabled selected>選択</option>
+                                </select>
+                                <span class="profile-unit">cm</span>
+                            </div>
+                        </div>
+                        <div class="profile-field-right">
+                            <input type="checkbox" id="profileHeightPublic" class="profile-public-checkbox" checked>
+                        </div>
+                    </div>
+
+                    <!-- 体重 -->
+                    <div class="profile-field-row">
+                        <div class="profile-field-left">
+                            <label class="profile-label">体重</label>
+                            <div class="profile-inline-row">
+                                <select id="profileWeight" class="profile-select profile-select-num">
+                                    <option value="" disabled selected>選択</option>
+                                </select>
+                                <span class="profile-unit">kg</span>
+                            </div>
+                        </div>
+                        <div class="profile-field-right">
+                            <input type="checkbox" id="profileWeightPublic" class="profile-public-checkbox" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-buttons">
+                <button class="btn board-btn-confirm" id="profileSubmitBtn" onclick="showProfileConfirm()">確認画面へ</button>
+            </div>
+            </div>
+
+            <!-- 確認画面 -->
+            <div id="profileConfirmView" style="display: none;">
+                <div class="profile-header">
+                    <h3 class="profile-title">登録内容の確認</h3>
+                    <p class="profile-subtitle">こちらの内容でよろしいでしょうか？<br><span class="profile-caution">※オレンジ文字の情報は今後変更できません</span></p>
+                </div>
+                <div class="profile-confirm-content" id="profileConfirmContent">
+                    <!-- JavaScriptで生成 -->
+                </div>
+                <div class="profile-buttons">
+                    <button class="btn board-btn-confirm" onclick="submitProfile()">登録する</button>
+                    <button class="btn board-btn-back" onclick="backToProfileForm()">もどる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メールボックスモーダル -->
+    <div class="modal" id="mailboxModal">
+        <div class="modal-content mailbox-modal-content">
+            <div class="win-titlebar">
+                <span class="win-titlebar-title">メール</span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-close" onclick="closeMailboxModal()">✕</button>
+                </div>
+            </div>
+            <div id="mailboxGlobalToast" class="mailbox-global-toast" style="display:none;"></div>
+
+            <!-- 下書き確認ダイアログ（作成中に別フォルダへ移動しようとした時） -->
+            <div id="composeLeaveDlg" class="compose-leave-dlg" style="display:none;">
+                <div class="compose-leave-box">
+                    <div class="compose-leave-title">下書き保存しますか？</div>
+                    <div class="compose-leave-btns">
+                        <button class="compose-leave-btn save"    onclick="composeLeaveSave()">はい</button>
+                        <button class="compose-leave-btn discard" onclick="composeLeaveDiscard()">いいえ</button>
+                        <button class="compose-leave-btn cancel"  onclick="composeLeaveCancelDlg()">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mailbox-container">
+
+                <!-- 左サイドバー -->
+                <div class="mailbox-sidebar">
+                    <!-- タブ -->
+                    <div class="mailbox-tabs">
+                        <button class="mailbox-tab active" id="tabMail" onclick="switchMailboxTab('mail')">メール<span class="tab-notif-dot" id="tabMailDot" style="display:none;"></span></button>
+                        <button class="mailbox-tab" id="tabNotif" onclick="switchMailboxTab('notif')">通知<span class="tab-notif-dot" id="tabNotifDot" style="display:none;"></span></button>
+                    </div>
+
+                    <!-- メールタブ側コンテンツ -->
+                    <div id="mailSideContent">
+                        <button class="mailbox-compose-btn" onclick="openComposeView()">
+                            <img src="status/mail/blog.png" class="compose-icon-img"> 作成する
+                        </button>
+                        <nav class="mailbox-menu">
+                            <button class="mailbox-menu-item active" id="folderInbox" onclick="selectMailFolder('inbox')">
+                                <span class="menu-icon"><img src="status/mail/letter.png" class="menu-icon-img"></span>
+                                <span class="menu-label">受信箱</span>
+                                <span class="mailbox-folder-badge" id="inboxBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="folderSent" onclick="selectMailFolder('sent')">
+                                <span class="menu-icon"><img src="status/mail/hikoki.png" class="menu-icon-img"></span>
+                                <span class="menu-label">送信箱</span>
+                            </button>
+                            <button class="mailbox-menu-item" id="folderDraft" onclick="selectMailFolder('draft')">
+                                <span class="menu-icon"><img src="status/mail/enpitu.png" class="menu-icon-img"></span>
+                                <span class="menu-label">下書き</span>
+                                <span class="mailbox-folder-badge soft" id="draftBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="folderFavorites" onclick="selectMailFolder('favorites')">
+                                <span class="menu-icon"><img src="status/mail/star1.png" class="menu-icon-img"></span>
+                                <span class="menu-label">お気に入り</span>
+                            </button>
+                            <button class="mailbox-menu-item" id="folderLater" onclick="selectMailFolder('later')">
+                                <span class="menu-icon"><img src="status/mail/horyu.png" class="menu-icon-img"></span>
+                                <span class="menu-label">あとで返す</span>
+                                <span class="mailbox-folder-badge soft" id="laterBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="folderTrash" onclick="selectMailFolder('trash')">
+                                <span class="menu-icon"><img src="status/mail/dustbox.png" class="menu-icon-img"></span>
+                                <span class="menu-label">ゴミ箱</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- 通知タブ側コンテンツ -->
+                    <div id="notifSideContent" style="display:none">
+                        <nav class="mailbox-menu notif-menu">
+                            <button class="mailbox-menu-item active" id="notifCatLike" onclick="switchNotifCategory('like')">
+                                <span class="menu-icon"><img src="status/mail/heart3.png" class="menu-icon-img"></span>
+                                <span class="menu-label">いいね</span>
+                                <span class="mailbox-folder-badge" id="notifLikeBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="notifCatComment" onclick="switchNotifCategory('comment')">
+                                <span class="menu-icon"><img src="status/mail/Comment2.png" class="menu-icon-img"></span>
+                                <span class="menu-label">コメント</span>
+                                <span class="mailbox-folder-badge" id="notifCommentBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="notifCatFriend" onclick="switchNotifCategory('friend')">
+                                <span class="menu-icon"><img src="status/mail/friend.png" class="menu-icon-img"></span>
+                                <span class="menu-label">友達</span>
+                                <span class="mailbox-folder-badge" id="notifFriendBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="notifCatSaisen" onclick="switchNotifCategory('saisen')">
+                                <span class="menu-icon"><img src="status/mail/coin.svg" class="menu-icon-img coin-menu-icon"></span>
+                                <span class="menu-label">お賽銭</span>
+                                <span class="mailbox-folder-badge" id="notifSaisenBadge"></span>
+                            </button>
+                            <button class="mailbox-menu-item" id="notifCatNews" onclick="switchNotifCategory('news')">
+                                <span class="menu-icon"><img src="status/mail/osirase.png" class="menu-icon-img"></span>
+                                <span class="menu-label">お知らせ</span>
+                                <span class="mailbox-folder-badge" id="notifNewsBadge"></span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- 右コンテンツエリア -->
+                <div class="mailbox-content">
+                    <!-- 検索バー -->
+                    <div class="mailbox-search-bar">
+                        <div class="mailbox-search-wrap">
+                            <input type="text" id="mailSearchInput" class="mailbox-search-input" placeholder="メッセージを検索..." oninput="searchMail()">
+                            <button class="mailbox-search-btn"><img src="status/mail/search.png" class="search-icon-img"></button>
+                        </div>
+                        <div class="mailbox-top-icons">
+                            <button class="mailbox-icon-btn"><img src="status/mail/haguruma.png" class="topicon-img"><span>設定</span></button>
+                        </div>
+                    </div>
+
+                    <!-- メールボックスコンテナ（ボックス枠） -->
+                    <div class="mailbox-box-container">
+
+                        <!-- メールリストビュー -->
+                        <div id="mailboxListView" class="mailbox-view">
+                            <div class="mailbox-list-header">
+                                <div class="mailbox-list-col-check"><input type="checkbox" id="mailSelectAll" onchange="toggleSelectAllMail(this)"></div>
+                                <div class="mailbox-bulk-actions" id="mailBulkActions" style="display:none;">
+                                    <button class="mailbox-bulk-btn" id="bulkStarBtn" onclick="bulkActionStar()" title="お気に入り"><img src="status/mail/star1.png" class="bulk-action-img"></button>
+                                    <button class="mailbox-bulk-btn" id="bulkLaterBtn" onclick="bulkActionLater()" title="あとで返す"><img src="status/mail/horyu.png" class="bulk-action-img"></button>
+                                    <button class="mailbox-bulk-btn" id="bulkToInboxBtn" onclick="bulkActionMoveToInbox()" title="受信箱へ戻す" style="display:none;"><img src="status/mail/letter.png" class="bulk-action-img"></button>
+                                    <button class="mailbox-bulk-btn" id="bulkTrashBtn" onclick="bulkActionTrash()" title="ゴミ箱"><img src="status/mail/dustbox.png" class="bulk-action-img"></button>
+                                    <button class="mailbox-back-btn" id="bulkRestoreBtn" onclick="bulkActionRestore()" style="display:none;">復元する</button>
+                                    <button class="mailbox-detail-edit-btn" id="bulkPermDeleteBtn" onclick="bulkActionPermanentDelete()" style="display:none;">完全に削除</button>
+                                </div>
+                                <div class="mailbox-list-col-title"></div>
+                                <div class="mailbox-list-col-sender" id="mailSenderColHeader">差出人 ▾</div>
+                                <div class="mailbox-list-col-date">日付 ▾</div>
+                            </div>
+                            <div class="mailbox-list" id="mailboxList">
+                                <!-- JavaScriptで生成 -->
+                            </div>
+                        </div>
+
+                        <!-- メール詳細ビュー -->
+                        <div id="mailboxDetailView" class="mailbox-view" style="display:none;">
+                            <div class="mailbox-detail-header">
+                                <button class="mailbox-back-btn" onclick="backToMailList()">← 戻る</button>
+                                <div class="mailbox-detail-actions" id="mailboxDetailActions"></div>
+                                <!-- スタンプピッカー -->
+                                <div id="stampPicker" class="stamp-picker" style="display:none;">
+                                <div class="stamp-picker-grid">
+                                    <img src="status/mail/1.smile.png"    class="stamp-picker-item" onclick="selectStamp('1.smile')">
+                                    <img src="status/mail/2.happy.png"    class="stamp-picker-item" onclick="selectStamp('2.happy')">
+                                    <img src="status/mail/3.funny.png"    class="stamp-picker-item" onclick="selectStamp('3.funny')">
+                                    <img src="status/mail/4.yeah.png"     class="stamp-picker-item" onclick="selectStamp('4.yeah')">
+                                    <img src="status/mail/5.good.png"     class="stamp-picker-item" onclick="selectStamp('5.good')">
+                                    <img src="status/mail/6.applause.png" class="stamp-picker-item" onclick="selectStamp('6.applause')">
+                                    <img src="status/mail/7.love.png"     class="stamp-picker-item" onclick="selectStamp('7.love')">
+                                    <img src="status/mail/8.100.png"      class="stamp-picker-item" onclick="selectStamp('8.100')">
+                                </div>
+                            </div>
+                            </div>
+                            <div class="mailbox-detail-content" id="mailboxDetailContent" onclick="closeStampPicker()">
+                                <!-- JavaScriptで生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 通知ビュー -->
+                        <div id="mailboxNotifView" class="mailbox-view" style="display:none; flex-direction:column;">
+                            <div class="notif-view-header">
+                                <button class="mailbox-back-btn notif-back-btn" id="notifBackBtn" onclick="backFromNewsDetail()" style="display:none;">← 戻る</button>
+                                <span class="notif-view-title" id="notifViewTitle">いいね・スタンプ</span>
+                                <button class="notif-read-all-btn" onclick="markAllNotifRead()">すべて既読にする</button>
+                            </div>
+                            <div class="notif-list" id="notifList"></div>
+                        </div>
+
+                        <!-- メール作成ビュー -->
+                        <div id="mailboxComposeView" class="mailbox-view" style="display:none;">
+                            <div class="compose-header">
+                                <button class="mailbox-back-btn compose-back-btn" onclick="composeBack()">← 戻る</button>
+                                <div class="compose-header-spacer"></div>
+                                <button id="composePreviewBtn" class="compose-preview-btn" onclick="toggleReplyPreview()" style="display:none;">相手のメッセージ</button>
+                                <div class="compose-header-actions" id="composeHeaderActions" style="display:none;">
+                                    <button class="compose-hdr-draft-btn" onclick="saveComposeDraft()">下書き保存</button>
+                                    <button class="compose-hdr-send-btn" onclick="sendComposedMail()">送信する <img src="status/mail/hikoki2.png" class="compose-send-icon"></button>
+                                </div>
+                            </div>
+                            <div class="compose-step-content" id="composeStepContent">
+                                <!-- JavaScriptで生成 -->
+                            </div>
+                            <!-- 返信元メッセージのプレビュー -->
+                            <div id="composePreviewContent" class="compose-preview-content" style="display:none;"></div>
+                            <!-- Step3のみ表示：ツールバー -->
+                            <div class="compose-toolbar-wrap" id="composeToolbarWrap" style="display:none;"></div>
+                            <div class="compose-toast" id="composeToast"></div>
+                            <!-- プレゼント添付ピッカー -->
+                            <div class="attach-picker-overlay" id="attachPickerOverlay" style="display:none;"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- お絵かき掲示板モーダル -->
+    <!-- お絵かき掲示板モーダル（ギャラリー） -->
+    <!-- お絵かき拡大ビューモーダル -->
+    <div class="modal" id="oekakiViewModal" onclick="closeOekakiView()">
+        <div class="oekaki-view-content" onclick="event.stopPropagation()">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title" id="oekakiViewTitle"></span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeOekakiView()">✕</button>
+                </div>
+            </div>
+            <div class="oekaki-view-body">
+                <canvas id="oekakiViewCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="oekakiModal">
+        <div class="modal-content oekaki-modal-content">
+            <div class="win-titlebar-facility">
+                <span class="win-titlebar-facility-title"></span>
+                <div class="win-titlebar-btns">
+                    <button class="win-titlebar-btn win-titlebar-facility-close" onclick="closeOekakiModal()">✕</button>
+                </div>
+            </div>
+            <div class="oekaki-modal-body">
+                <div class="oekaki-gallery-top">
+                    <div>
+                        <h2 class="oekaki-gallery-title">お絵かき掲示板</h2>
+                        <p class="oekaki-gallery-desc">みんなのお絵かき掲示板です。好きな絵を書いてみましょう！</p>
+                    </div>
+                    <button class="oekaki-paint-btn" onclick="openOekakiEditor()">投稿する</button>
+                </div>
+                <div class="oekaki-gallery-divider"></div>
+                <div id="oekakiGallery" class="oekaki-gallery"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ペイントウィンドウモーダル（ギャラリーの上に重なる） -->
+    <div class="modal" id="oekakiPaintModal">
+        <div class="modal-content oekaki-paint-modal-content">
+            <div class="oekaki-paint-window">
+                <!-- タイトルバー -->
+                <div class="oekaki-titlebar">
+                    <span>ペイント</span>
+                    <button class="oekaki-close-btn" onclick="closePaintModal()" title="閉じる">✕</button>
+                </div>
+                <!-- メインエリア（ツールバー＋キャンバス） -->
+                <div class="oekaki-editor-main">
+                    <!-- ツールバー -->
+                    <div class="oekaki-toolbar">
+                        <div class="oekaki-tools-grid">
+                            <button data-tool="pencil"     class="oekaki-tool-btn active" onclick="selectOekakiTool('pencil')"     title="鉛筆"><img src="public/keiziban/enpitsu.png"     alt="鉛筆"></button>
+                            <button data-tool="eraser"     class="oekaki-tool-btn"        onclick="selectOekakiTool('eraser')"     title="消しゴム"><img src="public/keiziban/kesigomu.png"   alt="消しゴム"></button>
+                            <button data-tool="fill"       class="oekaki-tool-btn"        onclick="selectOekakiTool('fill')"       title="塗りつぶし"><img src="public/keiziban/nuritubushi.png" alt="塗りつぶし"></button>
+                            <button data-tool="zoom"       class="oekaki-tool-btn"        onclick="selectOekakiTool('zoom')"       title="虫眼鏡"><img src="public/keiziban/musimegane.png"  alt="虫眼鏡"></button>
+                            <button data-tool="eyedropper" class="oekaki-tool-btn"        onclick="selectOekakiTool('eyedropper')" title="スポイト"><img src="public/keiziban/supoito.png"     alt="スポイト"></button>
+                            <button data-tool="airbrush"   class="oekaki-tool-btn"        onclick="selectOekakiTool('airbrush')"   title="エアブラシ"><img src="public/keiziban/airbrush.png"   alt="エアブラシ"></button>
+                        </div>
+                        <div class="oekaki-toolbar-sep"></div>
+                        <!-- サイズ選択 -->
+                        <div class="oekaki-size-btns">
+                            <button data-size="small"  class="oekaki-size-btn"        onclick="selectOekakiSize('small')">
+                                <div class="oekaki-size-line" style="height:1px;"></div>
+                            </button>
+                            <button data-size="medium" class="oekaki-size-btn active" onclick="selectOekakiSize('medium')">
+                                <div class="oekaki-size-line" style="height:3px;"></div>
+                            </button>
+                            <button data-size="large"  class="oekaki-size-btn"        onclick="selectOekakiSize('large')">
+                                <div class="oekaki-size-line" style="height:7px; border-radius:4px;"></div>
+                            </button>
+                        </div>
+                        <div class="oekaki-toolbar-sep"></div>
+                        <!-- 戻る・進むボタン -->
+                        <div class="oekaki-history-btns">
+                            <button id="oekakiUndoBtn" class="oekaki-history-btn" onclick="undoOekaki()" title="元に戻す（Ctrl+Z）">↩</button>
+                            <button id="oekakiRedoBtn" class="oekaki-history-btn" onclick="redoOekaki()" title="やり直し（Ctrl+Y）">↪</button>
+                        </div>
+                    </div>
+                    <!-- キャンバス -->
+                    <div class="oekaki-canvas-wrapper">
+                        <canvas id="oekakiCanvas" width="640" height="480"></canvas>
+                    </div>
+                </div>
+                <!-- パレットバー -->
+                <div class="oekaki-palette-bar">
+                    <div class="oekaki-palette-top">
+                        <div class="oekaki-palette-tabs">
+                            <button data-palette="pastel" class="oekaki-palette-tab"        onclick="selectOekakiPalette('pastel')">明るめ</button>
+                            <button data-palette="normal" class="oekaki-palette-tab active" onclick="selectOekakiPalette('normal')">ふつう</button>
+                            <button data-palette="deep"   class="oekaki-palette-tab"        onclick="selectOekakiPalette('deep')">暗め</button>
+                        </div>
+                        <div class="oekaki-editor-actions">
+                            <button class="oekaki-clear-btn" onclick="clearOekakiCanvas()">クリア</button>
+                            <button class="oekaki-post-btn"  onclick="postOekakiDrawing()">投稿する</button>
+                        </div>
+                    </div>
+                    <div id="oekakiColorGrid" class="oekaki-color-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toastNotification" class="toast-notification"></div>
+
+    <script src="data/jobs.js"></script>
+    <script src="data/mapdata.js"></script>
+    <script src="data/map.js"></script>
+    <script src="data/items.js"></script>
+    <script src="data/tonya-items.js"></script>
+    <script src="data/shop.js"></script>
+    <script src="data/hudosan.js"></script>
+    <script src="data/board.js"></script>
+    <script src="data/oekaki.js"></script>
+    <script src="data/hellowork.js"></script>
+    <script src="data/mail.js"></script>
+    <script src="data/myhouse.js"></script>
+    <script src="data/diary.js"></script>
+    <script src="data/bulletin.js"></script>
+    <script src="data/event.js"></script>
+    <script src="data/game.js"></script>
+    <script src="data/bank.js"></script>
+    <script src="data/yakuba.js"></script>
+    <script src="data/inventory.js"></script>
+    <script src="data/cardgame.js"></script>
+    <script src="data/tonya.js"></script>
+
+
+    <div id="abilityTooltip"></div>
+</body>
+</html>
